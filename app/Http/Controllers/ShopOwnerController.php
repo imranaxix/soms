@@ -67,6 +67,47 @@ class ShopOwnerController extends Controller
         return view('shop-owner.orders.create');
     }
 
+    public function showOrder($id)
+    {
+        // Mock data for a single order as seen in the mockup
+        $order = [
+            'id' => $id,
+            'order_number' => '#23731221',
+            'placed_at' => 'Mar 24, 2026',
+            'estimated_delivery' => [
+                'status' => 'On track (29 days left)',
+                'due_date' => 'Apr 24, 2026'
+            ],
+            'financial' => [
+                'subtotal' => 100000,
+                'paid' => 30000,
+                'balance' => 70000
+            ],
+            'manufacturer' => [
+                'name' => 'XYZ Manufacturing',
+                'status' => 'Verified Supply Partner',
+                'last_updated' => 'Mar 24, 08:45'
+            ],
+            'details' => [
+                'item' => 'T-Shirt - V Neck',
+                'quantity' => '100 pieces',
+                'price_per_unit' => 1000
+            ],
+            'timeline' => [
+                ['label' => 'Order Placed', 'date' => 'Mar 24, 08:42', 'status' => 'completed', 'desc' => 'Awaiting manufacturer confirmation'],
+                ['label' => 'Material Procurement', 'date' => '--', 'status' => 'pending', 'desc' => 'Sourcing fabrics and accessories'],
+                ['label' => 'Production Stage', 'date' => '--', 'status' => 'pending', 'desc' => 'Cutting and Stitching in progress'],
+                ['label' => 'Quality Control', 'date' => '--', 'status' => 'pending', 'desc' => 'Final Inspection and packaging'],
+            ],
+            'payments' => [
+                ['date' => 'Mar 24', 'amount' => 30000, 'method' => 'jazzcash']
+            ],
+            'progress' => 25
+        ];
+
+        return view('shop-owner.orders.show', compact('order'));
+    }
+
     public function manufacturers()
     {
         return view('shop-owner.manufacturers.index');
@@ -85,6 +126,32 @@ class ShopOwnerController extends Controller
 
     public function reports()
     {
-        return view('shop-owner.reports.index');
+        // Mock data for the reports page matching the design
+        $stats = [
+            'totalSpend' => 30000,
+            'pendingLiabilities' => 170000,
+            'ordersFulfilled' => 18,
+            'topManufacturer' => 'Textile Masters'
+        ];
+
+        $chartData = [
+            'spending' => [
+                'labels' => ['Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026'],
+                'data' => [0, 0, 0, 0, 0, 200000], // Matches the single bar in the image
+            ],
+            'distribution' => [
+                'labels' => ['Pending', 'In Progress', 'Completed', 'Rejected'],
+                'data' => [15, 25, 50, 10], // Mock distribution
+            ]
+        ];
+
+        $transactions = [
+            ['id' => 'TRX-0921A', 'date' => 'Mar 18, 2026', 'manufacturer' => 'Textile Masters', 'method' => 'Bank Transfer', 'status' => 'Paid', 'amount' => 4500],
+            ['id' => 'TRX-0915B', 'date' => 'Mar 15, 2026', 'manufacturer' => 'Global Garments', 'method' => 'JazzCash', 'status' => 'Pending', 'amount' => 2100],
+            ['id' => 'TRX-0884C', 'date' => 'Mar 12, 2026', 'manufacturer' => 'Quick Stitch Co.', 'method' => 'PayPal', 'status' => 'Overdue', 'amount' => 8000],
+            ['id' => 'TRX-0870D', 'date' => 'Mar 10, 2026', 'manufacturer' => 'Textile Masters', 'method' => 'Bank Transfer', 'status' => 'Paid', 'amount' => 3200],
+        ];
+
+        return view('shop-owner.reports.index', compact('stats', 'chartData', 'transactions'));
     }
 }

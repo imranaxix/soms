@@ -114,7 +114,9 @@
                 <tbody class="divide-y divide-neutral-100">
                     <!-- Mock data row 1 -->
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-4 text-sm font-semibold font-mono text-primary-600">#ORD-001</td>
+                        <td class="px-6 py-4 text-sm font-semibold font-mono">
+                            <a href="{{ route('shop.orders.show', 'ORD-001') }}" class="text-primary-600 hover:text-primary-700 hover:underline">#ORD-001</a>
+                        </td>
                         <td class="px-6 py-4">
                             <div class="text-sm font-semibold text-neutral-900">Sweater - Sleeveless</div>
                             <div class="text-[11px] text-neutral-500 uppercase tracking-tighter">Qty: 100 pcs</div>
@@ -135,7 +137,9 @@
                     </tr>
                     <!-- Mock data row 2 -->
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-4 text-sm font-semibold font-mono text-primary-600">#ORD-002</td>
+                        <td class="px-6 py-4 text-sm font-semibold font-mono">
+                            <a href="{{ route('shop.orders.show', 'ORD-002') }}" class="text-primary-600 hover:text-primary-700 hover:underline">#ORD-002</a>
+                        </td>
                         <td class="px-6 py-4">
                             <div class="text-sm font-semibold text-neutral-900">Cotton T-Shirts</div>
                             <div class="text-[11px] text-neutral-500 uppercase tracking-tighter">Qty: 1200 pcs</div>
