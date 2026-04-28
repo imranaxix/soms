@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
 
 class ManufacturerController extends Controller
 {
@@ -91,38 +93,44 @@ class ManufacturerController extends Controller
 
     public function catalog()
     {
-        $products = [
-            [
-                'name' => 'T-Shirt',
-                'description' => '',
-                'variations' => ['V Neck', 'Round Neck', 'Polo'],
-            ],
-            [
-                'name' => 'Sweater',
-                'description' => '',
-                'variations' => ['Sleeveless'],
-            ],
-        ];
+        $products = Auth::user()->products;
 
         return view('manufacturer.catalog.index', compact('products'));
     }
 
     public function createProduct()
     {
-        $products = [
-            [
-                'name' => 'T-Shirt',
-                'description' => '',
-                'variations' => ['V Neck', 'Round Neck', 'Polo'],
-            ],
-            [
-                'name' => 'Sweater',
-                'description' => '',
-                'variations' => ['Sleeveless'],
-            ],
-        ];
+        $products = Auth::user()->products;
 
         return view('manufacturer.catalog.create', compact('products'));
+    }
+
+    public function storeProduct(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'variations' => 'required|string', // Comma separated string for simplicity
+        ]);
+
+        // Convert variations string to array
+        $variationsArray = array_map('trim', explode(',', $request->variations));
+
+        Auth::user()->products()->create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'variations' => $variationsArray,
+        ]);
+
+        return redirect()->route('manufacturer.catalog.index')->with('success', 'Product created successfully');
+    }
+
+    public function destroyProduct($id)
+    {
+        $product = Auth::user()->products()->findOrFail($id);
+        $product->delete();
+
+        return redirect()->back()->with('success', 'Product deleted successfully');
     }
 
     public function production()

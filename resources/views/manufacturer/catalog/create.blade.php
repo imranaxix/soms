@@ -17,30 +17,26 @@
     <div class="bg-white rounded-xl border border-neutral-200 shadow-sm p-8 mt-8">
         <h2 class="text-lg font-bold text-neutral-900 mb-8 border-b border-neutral-100 pb-4">Add New Product</h2>
         
-        <form action="#" method="POST" class="space-y-8 max-w-2xl">
+        <form action="{{ route('manufacturer.catalog.store') }}" method="POST" class="space-y-8 max-w-2xl">
+            @csrf
             <!-- Product Name -->
             <div class="space-y-2">
                 <label class="block text-sm font-bold text-neutral-700">Product Name <span class="text-error-500 font-bold">*</span></label>
-                <input type="text" placeholder="e.g., T-Shirts" class="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                <input type="text" name="name" required placeholder="e.g., T-Shirts" class="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
             </div>
 
             <!-- Description -->
             <div class="space-y-2">
                 <label class="block text-sm font-bold text-neutral-700">Description</label>
-                <textarea rows="4" placeholder="Brief description of the product" class="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"></textarea>
+                <textarea name="description" rows="4" placeholder="Brief description of the product" class="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"></textarea>
             </div>
 
             <!-- Variations -->
             <div class="space-y-4">
                 <label class="block text-sm font-bold text-neutral-700">Sub-Products (Variations/Types)</label>
                 <div class="space-y-3">
-                    <input type="text" placeholder="e.g., V Neck, Round Neck, Polo" class="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
-                    <button type="button" class="inline-flex items-center gap-2 text-xs font-bold text-neutral-700 bg-neutral-100 px-3 py-2 rounded border border-neutral-200 hover:bg-neutral-200 transition-all">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Add Variation
-                    </button>
+                    <input type="text" name="variations" required placeholder="e.g., V Neck, Round Neck, Polo" class="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    <p class="text-[10px] text-neutral-500 font-medium">Separate variations with commas.</p>
                 </div>
             </div>
 
@@ -82,8 +78,12 @@
                                     @endforeach
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="px-4 py-1.5 bg-error-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-error-600 transition-all uppercase">Delete</button>
+                             <td class="px-6 py-4 text-right">
+                                <form action="{{ route('manufacturer.catalog.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="px-4 py-1.5 bg-error-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-error-600 transition-all uppercase">Delete</button>
+                                </form>
                             </td>
                         </tr>
                     @empty

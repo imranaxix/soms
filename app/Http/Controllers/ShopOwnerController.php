@@ -126,7 +126,6 @@ class ShopOwnerController extends Controller
 
     public function reports()
     {
-        // Mock data for the reports page matching the design
         $stats = [
             'totalSpend' => 30000,
             'pendingLiabilities' => 170000,
@@ -137,11 +136,11 @@ class ShopOwnerController extends Controller
         $chartData = [
             'spending' => [
                 'labels' => ['Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026'],
-                'data' => [0, 0, 0, 0, 0, 200000], // Matches the single bar in the image
+                'data' => [0, 0, 0, 0, 0, 200000], 
             ],
             'distribution' => [
                 'labels' => ['Pending', 'In Progress', 'Completed', 'Rejected'],
-                'data' => [15, 25, 50, 10], // Mock distribution
+                'data' => [15, 25, 50, 10], 
             ]
         ];
 

@@ -49,9 +49,12 @@
                 @csrf
                 <div>
                     <label for="email" class="block text-sm font-semibold text-neutral-700 mb-2">Email Address</label>
-                    <input type="email" id="email" name="email" required 
+                    <input type="email" id="email" name="email"  
                         placeholder="you@company.com"
                         class="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-neutral-400">
+                    @error('email')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div>
@@ -59,9 +62,12 @@
                         <label for="password" class="block text-sm font-semibold text-neutral-700">Password</label>
                         <a href="#" class="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors">Forgot password?</a>
                     </div>
-                    <input type="password" id="password" name="password" required 
+                    <input type="password" id="password" name="password"  
                         placeholder="••••••••"
                         class="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-neutral-400">
+                    @error('password')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div class="flex items-center">
