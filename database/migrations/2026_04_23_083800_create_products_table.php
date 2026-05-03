@@ -16,8 +16,6 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->text('description')->nullable();
-            $table->json('variations');
-            $table->decimal('base_price', 10, 2)->nullable();
             $table->timestamps();
         });
     }

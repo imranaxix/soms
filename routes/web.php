@@ -39,6 +39,7 @@ Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('
     Route::get('/catalog', [ManufacturerController::class, 'catalog'])->name('catalog.index');
     Route::get('/catalog/create', [ManufacturerController::class, 'createProduct'])->name('catalog.create');
     Route::post('/catalog', [ManufacturerController::class, 'storeProduct'])->name('catalog.store');
+    Route::get('/catalog/{id}', [ManufacturerController::class, 'showProduct'])->name('catalog.show');
     Route::delete('/catalog/{id}', [ManufacturerController::class, 'destroyProduct'])->name('catalog.destroy');
 
     Route::get('/production', [ManufacturerController::class, 'production'])->name('production.index');

@@ -13,13 +13,12 @@ class Product extends Model
         'user_id',
         'name',
         'description',
-        'variations',
-        'base_price',
     ];
 
-    protected $casts = [
-        'variations' => 'array',
-    ];
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
 
     public function user()
     {

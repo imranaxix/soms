@@ -36,19 +36,26 @@
                 <tbody class="divide-y divide-neutral-100">
                     @forelse($products as $product)
                         <tr class="hover:bg-neutral-50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-neutral-900">{{ $product['name'] }}</td>
-                            <td class="px-6 py-4 text-sm text-neutral-500">{{ $product['description'] ?: '--' }}</td>
+                            <td class="px-6 py-4 font-bold text-neutral-900">{{ $product->name }}</td>
+                            <td class="px-6 py-4 text-sm text-neutral-500">{{ $product->description ?: '--' }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex flex-wrap gap-2">
-                                    @foreach($product['variations'] as $variation)
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-tighter">
-                                            {{ $variation }}
+                                    @foreach($product->variants as $variant)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-tighter" title="SKU: {{ $variant->sku }}">
+                                            {{ $variant->variant_name }}
+                                            @if($variant->price > 0)
+                                                | Rs. {{ number_format($variant->price, 2) }}
+                                            @endif
+                                            @if($variant->stock_quantity > 0)
+                                                | Qty: {{ $variant->stock_quantity }}
+                                            @endif
                                         </span>
                                     @endforeach
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <form action="{{ route('manufacturer.catalog.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?')">
+                                <form action="{{ route('manufacturer.catalog.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?')" class="flex justify-end items-center gap-2">
+                                    <a href="{{ route('manufacturer.catalog.show', $product->id) }}" class="px-4 py-1.5 bg-blue-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-blue-600 transition-all uppercase">View</a>
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="px-4 py-1.5 bg-error-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-error-600 transition-all uppercase">Delete</button>

@@ -90,7 +90,7 @@
                                 <td class="px-6 py-4 text-sm text-neutral-500">{{ \Carbon\Carbon::parse($payment['date'])->format('M d, Y') }}</td>
                                 <td class="px-6 py-4 text-sm font-semibold text-primary-600">#{{ $order['id'] }}</td>
                                 <td class="px-6 py-4 text-sm font-medium text-neutral-800">{{ $order['manufacturerName'] }}</td>
-                                <td class="px-6 py-4 text-sm font-extrabold text-success-600 text-right">₹{{ number_format($payment['amount']) }}</td>
+                                <td class="px-6 py-4 text-sm font-extrabold text-success-600 text-right">Rs {{ number_format($payment['amount']) }}</td>
                             </tr>
                             @endforeach
                         @endforeach

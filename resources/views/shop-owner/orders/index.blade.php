@@ -123,7 +123,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-neutral-700">XYZ Manufacturing</td>
                         <td class="px-6 py-4 text-sm text-neutral-500">Apr 11, 2026</td>
-                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">₹100,000</td>
+                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs 100,000</td>
                         <td class="px-6 py-4">
                             <div class="text-[10px] text-neutral-400 font-medium mb-1">Stitching phase</div>
                             <div class="w-24 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
@@ -146,7 +146,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-neutral-700">Z-Fashion</td>
                         <td class="px-6 py-4 text-sm text-neutral-500">Apr 02, 2024</td>
-                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">₹2,40,000</td>
+                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs 2,40,000</td>
                         <td class="px-6 py-4">
                             <div class="text-[10px] text-neutral-400 font-medium mb-1 text-center">Awaiting Start</div>
                             <div class="w-24 h-1.5 bg-neutral-100 rounded-full overflow-hidden mx-0">

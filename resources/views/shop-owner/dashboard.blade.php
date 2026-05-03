@@ -75,15 +75,15 @@
         <div class="flex items-center justify-between px-16 py-6">
             <div class="flex flex-col justify-center items-center">
                 <p class="text-sm text-neutral-500 uppercase tracking-wider mb-1">Total Amount</p>
-                <p class="text-2xl font-bold text-neutral-900">₹{{ number_format($stats['totalAmount']) }}</p>
+                <p class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalAmount']) }}</p>
             </div>
             <div class="flex flex-col justify-center items-center">
                 <p class="text-sm text-neutral-500 uppercase tracking-wider mb-1">Paid</p>
-                <p class="text-2xl font-bold text-success-600">₹{{ number_format($stats['totalPaid']) }}</p>
+                <p class="text-2xl font-bold text-success-600">Rs {{ number_format($stats['totalPaid']) }}</p>
             </div>
             <div class="flex flex-col justify-center items-center">
                 <p class="text-sm text-neutral-500 uppercase tracking-wider mb-1">Pending</p>
-                <p class="text-2xl font-bold text-warning-600">₹{{ number_format($stats['totalPending']) }}</p>
+                <p class="text-2xl font-bold text-warning-600">Rs {{ number_format($stats['totalPending']) }}</p>
             </div>
         </div>
         <div class="mt-8 flex flex-col justify-center items-center">

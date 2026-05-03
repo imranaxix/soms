@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class ManufacturerController extends Controller
 {
@@ -93,14 +94,14 @@ class ManufacturerController extends Controller
 
     public function catalog()
     {
-        $products = Auth::user()->products;
+        $products = Auth::user()->products()->with('variants')->get();
 
         return view('manufacturer.catalog.index', compact('products'));
     }
 
     public function createProduct()
     {
-        $products = Auth::user()->products;
+        $products = Auth::user()->products()->with('variants')->get();
 
         return view('manufacturer.catalog.create', compact('products'));
     }
@@ -110,19 +111,46 @@ class ManufacturerController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'variations' => 'required|string', // Comma separated string for simplicity
+            'variations' => 'required|array|min:1',
+            'variations.*.name' => 'required|string|max:255',
+            'variations.*.price' => 'nullable|numeric|min:0',
+            'variations.*.stock_quantity' => 'nullable|integer|min:0',
+            'variations.*.image' => 'nullable|image|max:2048',
         ]);
 
-        // Convert variations string to array
-        $variationsArray = array_map('trim', explode(',', $request->variations));
-
-        Auth::user()->products()->create([
+        $product = Auth::user()->products()->create([
             'name' => $request->name,
             'description' => $request->description,
-            'variations' => $variationsArray,
         ]);
 
+        foreach ($request->variations as $variationData) {
+            $imagePath = null;
+            if (isset($variationData['image'])) {
+                $imagePath = $variationData['image']->store('variants', 'public');
+            }
+
+            // Auto-generate SKU
+            $productPrefix = strtoupper(Str::slug(substr($product->name, 0, 3), ''));
+            $variantPrefix = strtoupper(Str::slug(substr($variationData['name'], 0, 3), ''));
+            $sku = $productPrefix . '-' . $variantPrefix . '-' . strtoupper(Str::random(5));
+
+            $product->variants()->create([
+                'variant_name' => trim($variationData['name']),
+                'sku' => $sku,
+                'price' => $variationData['price'] ?? 0,
+                'stock_quantity' => $variationData['stock_quantity'] ?? 0,
+                'image' => $imagePath,
+            ]);
+        }
+
         return redirect()->route('manufacturer.catalog.index')->with('success', 'Product created successfully');
+    }
+
+    public function showProduct($id)
+    {
+        $product = Auth::user()->products()->with('variants')->findOrFail($id);
+
+        return view('manufacturer.catalog.show', compact('product'));
     }
 
     public function destroyProduct($id)
