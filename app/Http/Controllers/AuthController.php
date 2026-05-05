@@ -67,6 +67,12 @@ class AuthController extends Controller
             : redirect()->route('shop.dashboard');
     }
 
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('profile.index', compact('user'));
+    }
+
     public function logout(Request $request)
     {
         auth()->logout();

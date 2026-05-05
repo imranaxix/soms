@@ -57,7 +57,7 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-neutral-600">{{ $order['shop_owner'] }}</td>
                             <td class="px-6 py-4 text-sm text-neutral-600">{{ $order['date'] }}</td>
-                            <td class="px-6 py-4 font-semibold text-neutral-900">₹{{ number_format($order['amount']) }}</td>
+                            <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order['amount']) }}</td>
                             <td class="px-6 py-4 text-center">
                                 @php
                                     $statusClasses = [

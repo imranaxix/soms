@@ -60,7 +60,7 @@
                             <input type="date" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="due_date">
                         </div>
                         <div class="mb-6">
-                            <label class="block text-sm font-semibold text-neutral-700 mb-2">Total Amount (₹)</label>
+                            <label class="block text-sm font-semibold text-neutral-700 mb-2">Total Amount (Rs)</label>
                             <input type="number" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm font-semibold text-neutral-800 placeholder:font-normal placeholder:text-neutral-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="total_amount" placeholder="10000">
                         </div>
                     </div>

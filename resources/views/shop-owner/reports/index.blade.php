@@ -34,7 +34,7 @@
             </div>
             <div>
                 <p class="text-xs font-bold text-neutral-400 uppercase tracking-widest">Total Spend</p>
-                <p class="text-2xl font-black text-neutral-900 mt-1">₹{{ number_format($stats['totalSpend']) }}</p>
+                <p class="text-2xl font-black text-neutral-900 mt-1">Rs {{ number_format($stats['totalSpend']) }}</p>
             </div>
         </div>
 
@@ -48,7 +48,7 @@
             </div>
             <div>
                 <p class="text-xs font-bold text-neutral-400 uppercase tracking-widest">Pending Liabilities</p>
-                <p class="text-2xl font-black text-neutral-900 mt-1">₹{{ number_format($stats['pendingLiabilities']) }}</p>
+                <p class="text-2xl font-black text-neutral-900 mt-1">Rs {{ number_format($stats['pendingLiabilities']) }}</p>
             </div>
         </div>
 
@@ -129,7 +129,7 @@
                                 {{ $trx['status'] }}
                             </span>
                         </td>
-                        <td class="px-8 py-5 text-sm font-black text-neutral-900 text-right">₹{{ number_format($trx['amount']) }}</td>
+                        <td class="px-8 py-5 text-sm font-black text-neutral-900 text-right">Rs {{ number_format($trx['amount']) }}</td>
                     </tr>
                     @endforeach
                 </tbody>

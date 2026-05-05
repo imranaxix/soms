@@ -33,7 +33,7 @@
             </div>
             <div>
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Total Order Value</p>
-                <h3 class="text-2xl font-bold text-neutral-900">₹{{ number_format($stats['totalOrderValue']) }}</h3>
+                <h3 class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalOrderValue']) }}</h3>
             </div>
         </div>
 
@@ -45,7 +45,7 @@
             </div>
             <div>
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Total Paid</p>
-                <h3 class="text-2xl font-bold text-neutral-900">₹{{ number_format($stats['totalPaid']) }}</h3>
+                <h3 class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalPaid']) }}</h3>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Pending Balance</p>
-                <h3 class="text-2xl font-bold text-neutral-900">₹{{ number_format($stats['pendingBalance']) }}</h3>
+                <h3 class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['pendingBalance']) }}</h3>
             </div>
         </div>
     </div>
@@ -89,7 +89,7 @@
                                 {{ $trx['method'] }}
                             </span>
                         </td>
-                        <td class="px-6 py-5 text-right font-bold text-success-600">₹{{ number_format($trx['amount']) }}</td>
+                        <td class="px-6 py-5 text-right font-bold text-success-600">Rs {{ number_format($trx['amount']) }}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -119,9 +119,9 @@
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-6 py-5 text-sm font-bold text-neutral-900">{{ $item['order_id'] }}</td>
                         <td class="px-6 py-5 text-sm text-neutral-600">{{ $item['product'] }}</td>
-                        <td class="px-6 py-5 text-right font-bold text-neutral-900">₹{{ number_format($item['total']) }}</td>
-                        <td class="px-6 py-5 text-right font-bold text-success-600">₹{{ number_format($item['paid']) }}</td>
-                        <td class="px-6 py-5 text-right font-bold text-orange-600">₹{{ number_format($item['balance']) }}</td>
+                        <td class="px-6 py-5 text-right font-bold text-neutral-900">Rs {{ number_format($item['total']) }}</td>
+                        <td class="px-6 py-5 text-right font-bold text-success-600">Rs {{ number_format($item['paid']) }}</td>
+                        <td class="px-6 py-5 text-right font-bold text-orange-600">Rs {{ number_format($item['balance']) }}</td>
                         <td class="px-6 py-5 text-center">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">
                                 {{ $item['status'] }}

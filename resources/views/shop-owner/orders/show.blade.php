@@ -97,7 +97,7 @@
                             </tr>
                             <tr class="group">
                                 <td class="px-6 py-6 text-sm text-neutral-500">Price per Unit</td>
-                                <td class="px-6 py-6 text-sm font-bold text-neutral-900 text-right">₹{{ number_format($order['details']['price_per_unit'], 2) }}</td>
+                                <td class="px-6 py-6 text-sm font-bold text-neutral-900 text-right">Rs {{ number_format($order['details']['price_per_unit'], 2) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -122,7 +122,7 @@
                             @foreach($order['payments'] as $payment)
                             <tr>
                                 <td class="px-6 py-5 text-sm text-neutral-600">{{ $payment['date'] }}</td>
-                                <td class="px-6 py-5 text-sm font-bold text-neutral-900">₹{{ number_format($payment['amount']) }}</td>
+                                <td class="px-6 py-5 text-sm font-bold text-neutral-900">Rs {{ number_format($payment['amount']) }}</td>
                                 <td class="px-6 py-5 text-sm text-neutral-500 lowercase">{{ $payment['method'] }}</td>
                             </tr>
                             @endforeach
@@ -142,15 +142,15 @@
                 <div class="p-6 space-y-6">
                     <div class="flex justify-between items-center text-sm">
                         <span class="text-neutral-500">Subtotal</span>
-                        <span class="font-bold text-neutral-900">₹{{ number_format($order['financial']['subtotal']) }}</span>
+                        <span class="font-bold text-neutral-900">Rs {{ number_format($order['financial']['subtotal']) }}</span>
                     </div>
                     <div class="flex justify-between items-center text-sm">
                         <span class="text-neutral-500">Total Paid</span>
-                        <span class="font-bold text-neutral-900">₹{{ number_format($order['financial']['paid']) }}</span>
+                        <span class="font-bold text-neutral-900">Rs {{ number_format($order['financial']['paid']) }}</span>
                     </div>
                     <div class="pt-6 border-t border-dashed border-neutral-200 flex justify-between items-center">
                         <span class="text-sm font-bold text-neutral-900">Balance Due</span>
-                        <span class="text-xl font-black text-neutral-900">₹{{ number_format($order['financial']['balance']) }}</span>
+                        <span class="text-xl font-black text-neutral-900">Rs {{ number_format($order['financial']['balance']) }}</span>
                     </div>
                 </div>
             </div>

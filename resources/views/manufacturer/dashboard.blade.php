@@ -93,7 +93,7 @@
                         <td class="px-6 py-4 text-neutral-600">{{ $order['product'] }}</td>
                         <td class="px-6 py-4 text-neutral-600">{{ $order['quantity'] }}</td>
                         <td class="px-6 py-4 text-neutral-600 text-sm italic">{{ $order['due_date'] }}</td>
-                        <td class="px-6 py-4 font-semibold text-neutral-900">₹{{ number_format($order['amount']) }}</td>
+                        <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order['amount']) }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                                 <button class="px-3 py-1.5 bg-success-600 text-white text-xs font-bold rounded-md hover:bg-success-700 transition-colors uppercase">Accept</button>
@@ -113,15 +113,15 @@
         <div class="grid grid-cols-3 gap-8 text-center mb-8">
             <div>
                 <p class="text-xs text-neutral-500 uppercase font-bold tracking-wider mb-2">Total Revenue</p>
-                <h3 class="text-2xl font-bold text-neutral-900">₹{{ number_format($stats['totalRevenue']) }}</h3>
+                <h3 class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalRevenue']) }}</h3>
             </div>
             <div>
                 <p class="text-xs text-neutral-500 uppercase font-bold tracking-wider mb-2">Received</p>
-                <h3 class="text-2xl font-bold text-success-600">₹{{ number_format($stats['receivedPayment']) }}</h3>
+                <h3 class="text-2xl font-bold text-success-600">Rs {{ number_format($stats['receivedPayment']) }}</h3>
             </div>
             <div>
                 <p class="text-xs text-neutral-500 uppercase font-bold tracking-wider mb-2">Pending</p>
-                <h3 class="text-2xl font-bold text-orange-600">₹{{ number_format($stats['pendingPayment']) }}</h3>
+                <h3 class="text-2xl font-bold text-orange-600">Rs {{ number_format($stats['pendingPayment']) }}</h3>
             </div>
         </div>
         <div class="relative w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
@@ -166,7 +166,7 @@
                                 <span class="text-xs font-bold text-neutral-500">{{ $order['progress'] }}%</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 font-semibold text-neutral-900">₹{{ number_format($order['amount']) }}</td>
+                        <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order['amount']) }}</td>
                         <td class="px-6 py-4 text-right">
                             <button class="px-3 py-1.5 bg-success-600/50 text-white text-xs font-bold rounded-md cursor-not-allowed uppercase">Complete</button>
                         </td>

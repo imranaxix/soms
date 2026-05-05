@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShopOwnerController;
 use App\Http\Controllers\ManufacturerController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ConnectionController;
 
 // Simple redirect to the login
 Route::get('/', function () {
@@ -16,6 +17,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
+    Route::get('/connections/search', [ConnectionController::class, 'search'])->name('connections.search');
+});
 
 // Basic Shop Routes (Protected)
 Route::middleware(['auth', 'role:shop_owner'])->group(function () {

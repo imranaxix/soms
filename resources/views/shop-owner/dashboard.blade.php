@@ -143,7 +143,7 @@
                                         {{ $order['status'] }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-sm font-semibold text-neutral-800">₹{{ number_format($order['totalAmount']) }}</td>
+                                <td class="px-6 py-4 text-sm font-semibold text-neutral-800">Rs {{ number_format($order['totalAmount']) }}</td>
                                 <td class="px-6 py-4">
                                     <div class="w-32 flex justify-center items-center">
                                         <div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden mb-1 mr-4">
