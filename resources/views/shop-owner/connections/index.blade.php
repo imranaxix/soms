@@ -2,8 +2,8 @@
 
 @section('title', 'Manufacturers - SOMS')
 
-@section('page_title', 'Shop Owners')
-@section('page_subtitle', 'Manage your connections and search for new retail partners.')
+@section('page_title', 'Manufacturers')
+@section('page_subtitle', 'Manage your connections and search for new supply partners.')
 
 @section('content')
     <!-- Search Section -->
@@ -11,7 +11,7 @@
         <h2 class="text-lg font-bold text-neutral-900 mb-6">Add New Connection</h2>
         <form action="{{ route('connections.search') }}" method="GET" class="flex gap-3">
             <div class="flex-1 relative group">
-                <input type="email" name="email" value="{{ request('email') }}" class="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all group-hover:border-neutral-300" placeholder="Enter shop owner's email (e.g., shop@demo.com)" required>
+                <input type="email" name="email" value="{{ request('email') }}" class="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all group-hover:border-neutral-300" placeholder="Enter manufacturer's email (e.g., mfg@demo.com)" required>
                 <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-hover:text-neutral-500 transition-colors" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
@@ -40,7 +40,7 @@
                             <p class="text-xs text-neutral-500 mt-0.5">{{ data_get($user, 'email') }}</p>
                         </div>
                     </div>
-                    <div class="px-5 py-2.5 bg-neutral-900 text-white rounded-lg font-bold text-sm group-hover:bg-neutral-800 transition-colors">Send Request</div>
+                    <div class="px-5 py-2.5 bg-neutral-900 text-white rounded-lg font-bold text-sm group-hover:bg-neutral-800 transition-colors">View Profile</div>
                 </a>
             </div>
         @endif
@@ -55,7 +55,7 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($pendingRequests as $request)
-            @php $partner = $request->shopOwner; @endphp
+            @php $partner = $request->manufacturer; @endphp
             <div class="p-6 rounded-xl border border-warning-200 bg-warning-50/30 hover:bg-white hover:border-warning-300 hover:shadow-md transition-all group">
                 <div class="flex items-center gap-4 mb-6">
                     <div class="w-14 h-14 rounded-full bg-warning-500 text-white flex items-center justify-center text-xl font-bold shadow-sm">
@@ -91,7 +91,7 @@
         @if($activeConnections->count() > 0)
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($activeConnections as $connection)
-            @php $partner = $connection->shopOwner; @endphp
+            @php $partner = $connection->manufacturer; @endphp
             <div class="p-6 rounded-2xl border border-neutral-100 bg-white hover:border-primary-200 hover:shadow-lg transition-all group relative">
                 <!-- 3 Dot Dropdown -->
                 <div class="absolute top-4 right-4">

@@ -24,7 +24,7 @@
 
     <!-- Navigation -->
     <nav class="flex-1 py-5 overflow-y-auto no-scrollbar">
-        @if(request()->is('manufacturer*'))
+        @if(auth()->user()->role === 'manufacturer')
             <!-- Manufacturer Navigation -->
             <a href="{{ route('manufacturer.dashboard') }}" 
                class="flex items-center gap-3 px-3.5 py-3 text-sm text-white no-underline transition-colors {{ request()->routeIs('manufacturer.dashboard') ? 'bg-white/10' : 'hover:bg-white/10' }}">
@@ -107,12 +107,12 @@
                 <span class="transition-opacity duration-300 group-[.collapsed]:opacity-0 whitespace-nowrap">My Orders</span>
             </a>
 
-            <a href="{{ route('shop.manufacturers') }}" 
+            <a href="{{ route('shop.connections') }}" 
                class="flex items-center gap-3 px-3.5 py-3 text-sm text-white no-underline transition-colors {{ request()->routeIs('shop.manufacturers') ? 'bg-white/10' : 'hover:bg-white/10' }}">
                 <svg width="18" height="18" class="shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                <span class="transition-opacity duration-300 group-[.collapsed]:opacity-0 whitespace-nowrap">Manufacturers</span>
+                <span class="transition-opacity duration-300 group-[.collapsed]:opacity-0 whitespace-nowrap">Connections</span>
             </a>
 
             <a href="{{ route('shop.payments') }}" 

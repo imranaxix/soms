@@ -16,8 +16,8 @@ return new class extends Migration
         // This links the variant to the main product
         $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
         
-        $table->string('variant_name'); // e.g., "Slim Fit" or "Blue / XL"
-        $table->string('sku')->unique()->nullable(); // Unique identifier
+        $table->string('variant_name'); 
+        $table->string('sku')->unique(); 
         $table->decimal('price', 10, 2)->default(0);
         $table->integer('stock_quantity')->default(0);
         $table->string('image')->nullable(); // For variant-specific photos

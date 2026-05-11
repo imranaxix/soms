@@ -26,7 +26,7 @@
             </div>
             <div>
                 <p class="text-sm text-neutral-500">Total Orders</p>
-                <p class="text-2xl font-bold">3</p>
+                <p class="text-2xl font-bold">{{ $orders->count() }}</p>
             </div>
         </div>
 
@@ -38,7 +38,7 @@
             </div>
             <div>
                 <p class="text-sm text-neutral-500">Pending</p>
-                <p class="text-2xl font-bold">1</p>
+                <p class="text-2xl font-bold">{{ $orders->where('status', 'Pending')->count() }}</p>
             </div>
         </div>
 
@@ -50,7 +50,7 @@
             </div>
             <div>
                 <p class="text-sm text-neutral-500">In Progress</p>
-                <p class="text-2xl font-bold">1</p>
+                <p class="text-2xl font-bold">{{ $orders->where('status', 'In Progress')->count() }}</p>
             </div>
         </div>
 
@@ -62,7 +62,7 @@
             </div>
             <div>
                 <p class="text-sm text-neutral-500">Completed</p>
-                <p class="text-2xl font-bold">1</p>
+                <p class="text-2xl font-bold">{{ $orders->where('status', 'Completed')->count() }}</p>
             </div>
         </div>
     </div>
@@ -112,52 +112,43 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
-                    <!-- Mock data row 1 -->
+                    @forelse($orders as $order)
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-6 py-4 text-sm font-semibold font-mono">
-                            <a href="{{ route('shop.orders.show', 'ORD-001') }}" class="text-primary-600 hover:text-primary-700 hover:underline">#ORD-001</a>
+                            <a href="{{ route('shop.orders.show', $order->id) }}" class="text-primary-600 hover:text-primary-700 hover:underline">{{ $order->order_number }}</a>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="text-sm font-semibold text-neutral-900">Sweater - Sleeveless</div>
-                            <div class="text-[11px] text-neutral-500 uppercase tracking-tighter">Qty: 100 pcs</div>
+                            <div class="text-sm font-semibold text-neutral-900">{{ $order->product->name ?? 'N/A' }}</div>
+                            <div class="text-[11px] text-neutral-500 uppercase tracking-tighter">Qty: {{ $order->quantity }} {{ $order->unit }}</div>
                         </td>
-                        <td class="px-6 py-4 text-sm text-neutral-700">XYZ Manufacturing</td>
-                        <td class="px-6 py-4 text-sm text-neutral-500">Apr 11, 2026</td>
-                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs 100,000</td>
+                        <td class="px-6 py-4 text-sm text-neutral-700">{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}</td>
+                        <td class="px-6 py-4 text-sm text-neutral-500">{{ $order->created_at->format('M d, Y') }}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs {{ number_format($order->total_amount) }}</td>
                         <td class="px-6 py-4">
-                            <div class="text-[10px] text-neutral-400 font-medium mb-1">Stitching phase</div>
+                            <div class="text-[10px] text-neutral-400 font-medium mb-1">{{ $order->status === 'Pending' ? 'Awaiting Start' : 'In Production' }}</div>
                             <div class="w-24 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-                                <div class="bg-primary-500 h-full" style="width: 65%"></div>
+                                <div class="bg-primary-500 h-full" style="width: {{ $order->progress_percent }}%"></div>
                             </div>
-                            <div class="text-[10px] text-neutral-500 mt-0.5">65%</div>
+                            <div class="text-[10px] text-neutral-500 mt-0.5">{{ $order->progress_percent }}%</div>
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-tight bg-primary-100 text-primary-600">In Progress</span>
+                            @php
+                                $statusClasses = [
+                                    'Pending' => 'bg-warning-100 text-warning-600',
+                                    'In Progress' => 'bg-primary-100 text-primary-600',
+                                    'Completed' => 'bg-success-100 text-success-600',
+                                    'Cancelled' => 'bg-error-100 text-error-600',
+                                ];
+                                $class = $statusClasses[$order->status] ?? 'bg-neutral-100 text-neutral-600';
+                            @endphp
+                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-tight {{ $class }}">{{ $order->status }}</span>
                         </td>
                     </tr>
-                    <!-- Mock data row 2 -->
-                    <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-4 text-sm font-semibold font-mono">
-                            <a href="{{ route('shop.orders.show', 'ORD-002') }}" class="text-primary-600 hover:text-primary-700 hover:underline">#ORD-002</a>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-semibold text-neutral-900">Cotton T-Shirts</div>
-                            <div class="text-[11px] text-neutral-500 uppercase tracking-tighter">Qty: 1200 pcs</div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-neutral-700">Z-Fashion</td>
-                        <td class="px-6 py-4 text-sm text-neutral-500">Apr 02, 2024</td>
-                        <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs 2,40,000</td>
-                        <td class="px-6 py-4">
-                            <div class="text-[10px] text-neutral-400 font-medium mb-1 text-center">Awaiting Start</div>
-                            <div class="w-24 h-1.5 bg-neutral-100 rounded-full overflow-hidden mx-0">
-                                <div class="bg-primary-500 h-full" style="width: 0%"></div>
-                            </div>
-                            <div class="text-[10px] text-neutral-500 mt-0.5">0%</div>
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-tight bg-warning-100 text-warning-600">Pending</span>
-                        </td>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-neutral-500 font-medium">No orders found. Click "New Order" to get started!</td>
                     </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

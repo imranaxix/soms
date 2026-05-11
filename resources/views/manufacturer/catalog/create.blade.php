@@ -14,7 +14,7 @@
 <div class="space-y-6">
 
     <!-- Add Product Form -->
-    <div class="bg-white rounded-xl border border-neutral-200 shadow-sm p-8 mt-8">
+    <div class="bg-white rounded-xl border border-neutral-200 shadow-sm p-8 mt-8 mx-auto max-w-3xl">
         <h2 class="text-lg font-bold text-neutral-900 mb-8 border-b border-neutral-100 pb-4">Add New Product</h2>
         
         <form action="{{ route('manufacturer.catalog.store') }}" method="POST" class="space-y-8 max-w-2xl" enctype="multipart/form-data">

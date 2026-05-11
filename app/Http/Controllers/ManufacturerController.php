@@ -107,44 +107,48 @@ class ManufacturerController extends Controller
     }
 
     public function storeProduct(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'variations' => 'required|array|min:1',
-            'variations.*.name' => 'required|string|max:255',
-            'variations.*.price' => 'nullable|numeric|min:0',
-            'variations.*.stock_quantity' => 'nullable|integer|min:0',
-            'variations.*.image' => 'nullable|image|max:2048',
-        ]);
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'variations' => 'required|array|min:1',
+        'variations.*.name' => 'required|string|max:255',
+        'variations.*.price' => 'nullable|numeric|min:0',
+        'variations.*.stock_quantity' => 'nullable|integer|min:0',
+        'variations.*.image' => 'nullable|image|max:2048',
+    ]);
 
-        $product = Auth::user()->products()->create([
-            'name' => $request->name,
-            'description' => $request->description,
-        ]);
+    $product = Auth::user()->products()->create([
+        'name' => $request->name,
+        'description' => $request->description,
+    ]);
 
-        foreach ($request->variations as $variationData) {
-            $imagePath = null;
-            if (isset($variationData['image'])) {
-                $imagePath = $variationData['image']->store('variants', 'public');
-            }
-
-            // Auto-generate SKU
-            $productPrefix = strtoupper(Str::slug(substr($product->name, 0, 3), ''));
-            $variantPrefix = strtoupper(Str::slug(substr($variationData['name'], 0, 3), ''));
-            $sku = $productPrefix . '-' . $variantPrefix . '-' . strtoupper(Str::random(5));
-
-            $product->variants()->create([
-                'variant_name' => trim($variationData['name']),
-                'sku' => $sku,
-                'price' => $variationData['price'] ?? 0,
-                'stock_quantity' => $variationData['stock_quantity'] ?? 0,
-                'image' => $imagePath,
-            ]);
+    foreach ($request->variations as $variationData) {
+        $imagePath = null;
+        if (isset($variationData['image'])) {
+            $imagePath = $variationData['image']->store('variants', 'public');
         }
 
-        return redirect()->route('manufacturer.catalog.index')->with('success', 'Product created successfully');
+        // Auto SKU GENERATION
+        $productPrefix = strtoupper(Str::slug(substr($product->name, 0, 3), ''));
+        $variantPrefix = strtoupper(Str::slug(substr($variationData['name'], 0, 3), ''));
+        
+        
+        do {
+            $sku = $productPrefix . '-' . $variantPrefix . '-' . strtoupper(Str::random(6));
+        } while (\App\Models\ProductVariant::where('sku', $sku)->exists());
+
+        $product->variants()->create([
+            'variant_name' => trim($variationData['name']),
+            'sku' => $sku, 
+            'price' => $variationData['price'] ?? 0,
+            'stock_quantity' => $variationData['stock_quantity'] ?? 0,
+            'image' => $imagePath,
+        ]);
     }
+
+    return redirect()->route('manufacturer.catalog.index')->with('success', 'Product created successfully');
+}
 
     public function showProduct($id)
     {
@@ -230,7 +234,11 @@ class ManufacturerController extends Controller
 
     public function connections()
     {
-        return view('manufacturer.connections.index');
+        $user = auth()->user();
+        $pendingRequests = $user->connections()->where('status', 'pending')->where('initiated_by', '!=', $user->id)->get();
+        $activeConnections = $user->connections()->where('status', 'accepted')->get();
+
+        return view('manufacturer.connections.index', compact('pendingRequests', 'activeConnections'));
     }
 
     public function reports()
@@ -261,5 +269,10 @@ class ManufacturerController extends Controller
         ];
 
         return view('manufacturer.reports.index', compact('stats', 'chartData', 'transactions'));
+    }
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('manufacturer.profile.index', compact('user'));
     }
 }

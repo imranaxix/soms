@@ -3,17 +3,35 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Order;
+use Illuminate\Support\Str;
 
 class ShopOwnerController extends Controller
 {
     public function dashboard()
     {
         // Simple array of orders
-        $orders = [
-            ['id' => 'ORD-001', 'productName' => 'Sweater - Sleeveless', 'manufacturerName' => 'XYZ Manufacturing', 'quantity' => 100, 'dueDate' => '2024-05-15', 'status' => 'In Progress', 'totalAmount' => 100000, 'totalPaid' => 50000, 'productionProgress' => 50],
-            ['id' => 'ORD-002', 'productName' => 'T Shirt - V Neck', 'manufacturerName' => 'XYZ Manufacturing', 'quantity' => 50, 'dueDate' => '2024-05-20', 'status' => 'Pending', 'totalAmount' => 50000, 'totalPaid' => 0, 'productionProgress' => 0],
-            ['id' => 'ORD-003', 'productName' => 'T Shirt - Round Neck', 'manufacturerName' => 'XYZ Manufacturing', 'quantity' => 50, 'dueDate' => '2024-05-10', 'status' => 'Completed', 'totalAmount' => 50000, 'totalPaid' => 50000, 'productionProgress' => 100],
-        ];
+        $orders = Order::where('shop_owner_id', auth()->id())->latest()->get();
+        
+        // Mock data fallback if no real orders exist yet (for demo)
+        if ($orders->isEmpty()) {
+            $orders = [
+                (object)[
+                    'id' => 1,
+                    'order_number' => 'ORD-001',
+                    'product' => (object)['name' => 'Sweater - Sleeveless'],
+                    'manufacturer' => (object)['business_name' => 'XYZ Manufacturing'],
+                    'quantity' => 100,
+                    'unit' => 'pcs',
+                    'due_date' => \Carbon\Carbon::parse('2024-05-15'),
+                    'status' => 'In Progress',
+                    'total_amount' => 100000,
+                    'paid_amount' => 50000,
+                    'progress_percent' => 50
+                ],
+            ];
+            $orders = collect($orders);
+        }
 
         // Initialize all stats to 0 first
         $totalOrders = 0;
@@ -26,16 +44,16 @@ class ShopOwnerController extends Controller
         // Use a basic loop to calculate everything (fresher style)
         foreach ($orders as $order) {
             $totalOrders++;
-            $totalAmount = $totalAmount + $order['totalAmount'];
-            $totalPaid = $totalPaid + $order['totalPaid'];
+            $totalAmount = $totalAmount + $order->total_amount;
+            $totalPaid = $totalPaid + ($order->paid_amount ?? 0);
 
-            if ($order['status'] == 'Pending') {
+            if ($order->status == 'Pending') {
                 $pending++;
             }
-            if ($order['status'] == 'In Progress') {
+            if ($order->status == 'In Progress') {
                 $inProgress++;
             }
-            if ($order['status'] == 'Completed') {
+            if ($order->status == 'Completed') {
                 $completed++;
             }
         }
@@ -59,58 +77,116 @@ class ShopOwnerController extends Controller
 
     public function orders()
     {
-        return view('shop-owner.orders.index');
+        $orders = Order::where('shop_owner_id', auth()->id())->with(['manufacturer', 'product', 'variant'])->latest()->get();
+        return view('shop-owner.orders.index', compact('orders'));
+    }
+
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('shop-owner.profile.index', compact('user'));
     }
 
     public function createOrder()
     {
-        return view('shop-owner.orders.create');
+        $user = auth()->user();
+        $manufacturers = $user->manufacturerConnections()
+            ->where('status', 'accepted')
+            ->with('manufacturer')
+            ->get()
+            ->pluck('manufacturer');
+
+        return view('shop-owner.orders.create', compact('manufacturers'));
+    }
+
+    public function storeOrder(Request $request)
+    {
+        $request->validate([
+            'manufacturer_id' => 'required|exists:users,id',
+            'product_id' => 'required|exists:products,id',
+            'variant_id' => 'required|exists:product_variants,id',
+            'quantity' => 'required|integer|min:1',
+            'unit' => 'required|string',
+            'due_date' => 'required|date|after:today',
+            'total_amount' => 'required|numeric|min:0',
+            'payment_terms' => 'required|string',
+            'special_instructions' => 'nullable|string',
+        ]);
+
+        $order = Order::create([
+            'order_number' => '#' . strtoupper(Str::random(8)),
+            'shop_owner_id' => auth()->id(),
+            'manufacturer_id' => $request->manufacturer_id,
+            'product_id' => $request->product_id,
+            'variant_id' => $request->variant_id,
+            'quantity' => $request->quantity,
+            'unit' => $request->unit,
+            'total_amount' => $request->total_amount,
+            'payment_terms' => $request->payment_terms,
+            'due_date' => $request->due_date,
+            'special_instructions' => $request->special_instructions,
+            'status' => 'Pending',
+            'progress_percent' => 0,
+        ]);
+
+        return redirect()->route('shop.orders.index')->with('success', 'Order created successfully! Order Number: ' . $order->order_number);
+    }
+
+    public function getProducts($manufacturerId)
+    {
+        $manufacturer = \App\Models\User::findOrFail($manufacturerId);
+        
+        // Ensure they are connected
+        $isConnected = auth()->user()->manufacturerConnections()
+            ->where('manufacturer_id', $manufacturerId)
+            ->where('status', 'accepted')
+            ->exists();
+
+        if (!$isConnected) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $products = $manufacturer->products()->get(['id', 'name']);
+        return response()->json($products);
+    }
+
+    public function getVariants($productId)
+    {
+        $product = \App\Models\Product::findOrFail($productId);
+        
+        // Ensure the shop owner is connected to the manufacturer of this product
+        $isConnected = auth()->user()->manufacturerConnections()
+            ->where('manufacturer_id', $product->user_id)
+            ->where('status', 'accepted')
+            ->exists();
+
+        if (!$isConnected) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $variants = $product->variants()->get(['id', 'variant_name', 'sku', 'price']);
+        return response()->json($variants);
     }
 
     public function showOrder($id)
     {
-        // Mock data for a single order as seen in the mockup
-        $order = [
-            'id' => $id,
-            'order_number' => '#23731221',
-            'placed_at' => 'Mar 24, 2026',
-            'estimated_delivery' => [
-                'status' => 'On track (29 days left)',
-                'due_date' => 'Apr 24, 2026'
-            ],
-            'financial' => [
-                'subtotal' => 100000,
-                'paid' => 30000,
-                'balance' => 70000
-            ],
-            'manufacturer' => [
-                'name' => 'XYZ Manufacturing',
-                'status' => 'Verified Supply Partner',
-                'last_updated' => 'Mar 24, 08:45'
-            ],
-            'details' => [
-                'item' => 'T-Shirt - V Neck',
-                'quantity' => '100 pieces',
-                'price_per_unit' => 1000
-            ],
-            'timeline' => [
-                ['label' => 'Order Placed', 'date' => 'Mar 24, 08:42', 'status' => 'completed', 'desc' => 'Awaiting manufacturer confirmation'],
-                ['label' => 'Material Procurement', 'date' => '--', 'status' => 'pending', 'desc' => 'Sourcing fabrics and accessories'],
-                ['label' => 'Production Stage', 'date' => '--', 'status' => 'pending', 'desc' => 'Cutting and Stitching in progress'],
-                ['label' => 'Quality Control', 'date' => '--', 'status' => 'pending', 'desc' => 'Final Inspection and packaging'],
-            ],
-            'payments' => [
-                ['date' => 'Mar 24', 'amount' => 30000, 'method' => 'jazzcash']
-            ],
-            'progress' => 25
-        ];
+        $order = Order::with(['manufacturer', 'product', 'variant'])->findOrFail($id);
+
+        // Ensure the order belongs to the authenticated shop owner
+        if ($order->shop_owner_id !== auth()->id()) {
+            abort(403);
+        }
 
         return view('shop-owner.orders.show', compact('order'));
     }
 
-    public function manufacturers()
+    public function connections()
     {
-        return view('shop-owner.manufacturers.index');
+        $user = auth()->user();
+        $pendingRequests = $user->connections()->where('status', 'pending')->where('initiated_by', '!=', $user->id)->get();
+        $activeConnections = $user->connections()->where('status', 'accepted')->get();
+
+        return view('shop-owner.connections.index', compact('pendingRequests', 'activeConnections'));
     }
 
     public function payments()

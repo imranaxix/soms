@@ -131,25 +131,33 @@
                     </thead>
                     <tbody class="divide-y divide-neutral-100">
                         @foreach($orders as $order)
-                            <tr class="hover:bg-neutral-50 transition-colors">
-                                <td class="px-6 py-4 text-sm font-semibold text-primary-600">#{{ substr($order['id'], -6) }}</td>
-                                <td class="px-6 py-4 text-sm font-medium text-neutral-800">{{ $order['productName'] }}</td>
-                                <td class="px-6 py-4 text-sm text-neutral-600">{{ $order['manufacturerName'] }}</td>
-                                <td class="px-6 py-4 text-sm text-neutral-600">{{ $order['quantity'] }}</td>
-                                <td class="px-6 py-4 text-sm text-neutral-600">{{ date('M d, Y', strtotime($order['dueDate'])) }}</td>
+                            <tr class="hover:bg-neutral-50 transition-colors cursor-pointer" onclick="window.location='{{ route('shop.orders.show', $order->id) }}'">
+                                <td class="px-6 py-4 text-sm font-semibold text-primary-600">{{ $order->order_number }}</td>
+                                <td class="px-6 py-4 text-sm font-medium text-neutral-800">{{ $order->product->name ?? 'N/A' }}</td>
+                                <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}</td>
+                                <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->quantity }} {{ $order->unit }}</td>
+                                <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->due_date->format('M d, Y') }}</td>
                                 <td class="px-6 py-4 text-sm">
-                                    <span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-tight 
-                                        {{ $order['status'] == 'Pending' ? 'bg-warning-100 text-warning-600' : ($order['status'] == 'In Progress' ? 'bg-primary-100 text-primary-600' : 'bg-success-100 text-success-600') }}">
-                                        {{ $order['status'] }}
+                                    @php
+                                        $statusClasses = [
+                                            'Pending' => 'bg-warning-100 text-warning-600',
+                                            'In Progress' => 'bg-primary-100 text-primary-600',
+                                            'Completed' => 'bg-success-100 text-success-600',
+                                            'Cancelled' => 'bg-error-100 text-error-600',
+                                        ];
+                                        $class = $statusClasses[$order->status] ?? 'bg-neutral-100 text-neutral-600';
+                                    @endphp
+                                    <span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-tight {{ $class }}">
+                                        {{ $order->status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-sm font-semibold text-neutral-800">Rs {{ number_format($order['totalAmount']) }}</td>
+                                <td class="px-6 py-4 text-sm font-semibold text-neutral-800">Rs {{ number_format($order->total_amount) }}</td>
                                 <td class="px-6 py-4">
                                     <div class="w-32 flex justify-center items-center">
                                         <div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden mb-1 mr-4">
-                                            <div class="bg-primary-500 h-full" style="width: {{ $order['productionProgress'] }}%"></div>
+                                            <div class="bg-primary-500 h-full" style="width: {{ $order->progress_percent }}%"></div>
                                         </div>
-                                        <span class="text-[10px] text-neutral-400 font-medium">{{ $order['productionProgress'] }}%</span>
+                                        <span class="text-[10px] text-neutral-400 font-medium">{{ $order->progress_percent }}%</span>
                                     </div>
                                 </td>
                             </tr>

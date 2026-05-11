@@ -14,17 +14,24 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_number')->unique();
+
             // Relationships
             $table->foreignId('shop_owner_id')->constrained('users');
             $table->foreignId('manufacturer_id')->constrained('users');
+            $table->foreignId('product_id')->constrained('products');
+            $table->foreignId('variant_id')->constrained('product_variants');
             
-            $table->string('product_name');
             $table->integer('quantity');
-            $table->decimal('total_amount', 10, 2);
-            $table->decimal('paid_amount', 10, 2)->default(0);
-            $table->string('status')->default('Pending'); // Pending, In Progress, Completed
+            $table->string('unit')->default('pieces'); // pieces, meters, kilograms
+            $table->decimal('total_amount', 12, 2);
+            $table->decimal('paid_amount', 12, 2)->default(0);
+            $table->string('payment_terms'); // full_advance, 50_advance, on_delivery
+
             $table->date('due_date');
+            $table->string('status')->default('Pending'); // Pending, In Progress, Completed, Cancelled
             $table->integer('progress_percent')->default(0);
+            $table->text('special_instructions')->nullable();
+            
             $table->timestamps();
         });
     }

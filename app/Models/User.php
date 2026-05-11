@@ -34,4 +34,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Product::class);
     }
+
+    public function manufacturerConnections()
+    {
+        return $this->hasMany(Connection::class, 'shop_owner_id');
+    }
+
+    public function shopOwnerConnections()
+    {
+        return $this->hasMany(Connection::class, 'manufacturer_id');
+    }
+
+    public function connections()
+    {
+        return $this->role === 'manufacturer' 
+            ? $this->shopOwnerConnections() 
+            : $this->manufacturerConnections();
+    }
 }

@@ -19,21 +19,29 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
     Route::get('/connections/search', [ConnectionController::class, 'search'])->name('connections.search');
+    Route::post('/connections/request', [ConnectionController::class, 'store'])->name('connections.store');
+    Route::post('/connections/{id}/accept', [ConnectionController::class, 'accept'])->name('connections.accept');
+    Route::post('/connections/{id}/reject', [ConnectionController::class, 'reject'])->name('connections.reject');
+    Route::delete('/connections/{id}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
+    Route::get('/user/{id}', [ConnectionController::class, 'showProfile'])->name('user.show');
 });
 
 // Basic Shop Routes (Protected)
 Route::middleware(['auth', 'role:shop_owner'])->group(function () {
     Route::get('/shop/dashboard', [ShopOwnerController::class, 'dashboard'])->name('shop.dashboard');
+    Route::get('/shop/profile', [ShopOwnerController::class, 'profile'])->name('shop.profile');
     
     // Shop Order Routes
     Route::get('/shop/orders', [ShopOwnerController::class, 'orders'])->name('shop.orders.index');
     Route::get('/shop/orders/create', [ShopOwnerController::class, 'createOrder'])->name('shop.orders.create');
+    Route::post('/shop/orders', [ShopOwnerController::class, 'storeOrder'])->name('shop.orders.store');
+    Route::get('/shop/api/manufacturers/{id}/products', [ShopOwnerController::class, 'getProducts'])->name('shop.api.manufacturers.products');
+    Route::get('/shop/api/products/{id}/variants', [ShopOwnerController::class, 'getVariants'])->name('shop.api.products.variants');
     Route::get('/shop/orders/{id}', [ShopOwnerController::class, 'showOrder'])->name('shop.orders.show');
     
     // Other Shop Pages
-    Route::get('/shop/manufacturers', [ShopOwnerController::class, 'manufacturers'])->name('shop.manufacturers');
+    Route::get('/shop/connections', [ShopOwnerController::class, 'connections'])->name('shop.connections');
     Route::get('/shop/payments', [ShopOwnerController::class, 'payments'])->name('shop.payments');
     Route::get('/shop/reports', [ShopOwnerController::class, 'reports'])->name('shop.reports');
 });
@@ -41,6 +49,7 @@ Route::middleware(['auth', 'role:shop_owner'])->group(function () {
 // Manufacturer Routes (Protected)
 Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('manufacturer.')->group(function () {
     Route::get('/dashboard', [ManufacturerController::class, 'dashboard'])->name('dashboard');
+    Route::get('/profile', [ManufacturerController::class, 'profile'])->name('profile');
     Route::get('/orders', [ManufacturerController::class, 'orders'])->name('orders.index');
     Route::get('/catalog', [ManufacturerController::class, 'catalog'])->name('catalog.index');
     Route::get('/catalog/create', [ManufacturerController::class, 'createProduct'])->name('catalog.create');

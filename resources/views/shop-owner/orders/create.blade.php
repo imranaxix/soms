@@ -8,7 +8,7 @@
 @section('content')
     <div class="max-w-3xl mx-auto mt-4 px-0">
         <div class="bg-white rounded-xl shadow-sm border border-neutral-100 p-8">
-            <form action="#" method="POST">
+            <form action="{{ route('shop.orders.store') }}" method="POST">
                 @csrf
                 <!-- Product Details -->
                 <div class="mb-10 block">
@@ -16,32 +16,36 @@
 
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-neutral-700 mb-2">Select Manufacturer</label>
-                        <select class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300" name="payment_terms">
+                        <select id="manufacturer-select" class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300 transition-colors" name="manufacturer_id" required>
                             <option value="">-- Select Manufacturer --</option>
-                            <option value="1">Elite Garments</option>
-                            <option value="2">Z-Fashion</option>
-                            <option value="3">Heritage Weaves</option>
+                            @foreach($manufacturers as $m)
+                                <option value="{{ $m->id }}">{{ $m->business_name ?? $m->name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-neutral-700 mb-2">Select Product</label>
-                        <select class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300" name="payment_terms">
+                        <select id="product-select" class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" name="product_id" disabled required>
                             <option value="">-- Select Product --</option>
-                            <option value="1">Men's Denim Jacket</option>
-                            <option value="2">Cotton T-Shirts</option>
-                            <option value="3">Silk Scarves</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-neutral-700 mb-2">Select Variant</label>
+                        <select id="variant-select" class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" name="variant_id" disabled required>
+                            <option value="">-- Select Variant --</option>
                         </select>
                     </div>
 
                     <div class="grid grid-cols-2 gap-6">
                         <div class="mb-6">
                             <label class="block text-sm font-semibold text-neutral-700 mb-2 font-poppins">Quantity</label>
-                            <input type="number" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="quantity" placeholder="100">
+                            <input type="number" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="quantity" placeholder="100" min="1" required>
                         </div>
                         <div class="mb-6">
                             <label class="block text-sm font-semibold text-neutral-700 mb-2">Unit</label>
-                           <select class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300" name="payment_terms">
+                           <select class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300" name="unit">
                                 <option value="pieces">Pieces</option>
                                 <option value="meters">Meters</option>
                                 <option value="kilograms">Kilograms</option>
@@ -57,11 +61,11 @@
                     <div class="grid grid-cols-2 gap-6">
                         <div class="mb-6">
                             <label class="block text-sm font-semibold text-neutral-700 mb-2">Due Date</label>
-                            <input type="date" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="due_date">
+                            <input type="date" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="due_date" required>
                         </div>
                         <div class="mb-6">
                             <label class="block text-sm font-semibold text-neutral-700 mb-2">Total Amount (Rs)</label>
-                            <input type="number" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm font-semibold text-neutral-800 placeholder:font-normal placeholder:text-neutral-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="total_amount" placeholder="10000">
+                            <input type="number" id="total-amount" class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm font-semibold text-neutral-800 placeholder:font-normal placeholder:text-neutral-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none hover:border-neutral-300 transition-colors" name="total_amount" placeholder="10000" required>
                         </div>
                     </div>
 
@@ -91,4 +95,79 @@
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mSelect = document.getElementById('manufacturer-select');
+            const pSelect = document.getElementById('product-select');
+            const vSelect = document.getElementById('variant-select');
+            const amountInput = document.getElementById('total-amount');
+
+            mSelect.addEventListener('change', async function() {
+                const mId = this.value;
+                pSelect.innerHTML = '<option value="">-- Select Product --</option>';
+                vSelect.innerHTML = '<option value="">-- Select Variant --</option>';
+                pSelect.disabled = true;
+                vSelect.disabled = true;
+
+                if (mId) {
+                    try {
+                        const response = await fetch(`/shop/api/manufacturers/${mId}/products`);
+                        const products = await response.json();
+                        
+                        products.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.textContent = p.name;
+                            pSelect.appendChild(option);
+                        });
+                        
+                        pSelect.disabled = false;
+                    } catch (error) {
+                        console.error('Error fetching products:', error);
+                    }
+                }
+            });
+
+            pSelect.addEventListener('change', async function() {
+                const pId = this.value;
+                vSelect.innerHTML = '<option value="">-- Select Variant --</option>';
+                vSelect.disabled = true;
+
+                if (pId) {
+                    try {
+                        const response = await fetch(`/shop/api/products/${pId}/variants`);
+                        const variants = await response.json();
+                        
+                        variants.forEach(v => {
+                            const option = document.createElement('option');
+                            option.value = v.id;
+                            option.textContent = `${v.variant_name} (${v.sku || 'No SKU'}) - Rs ${v.price}`;
+                            option.dataset.price = v.price;
+                            vSelect.appendChild(option);
+                        });
+                        
+                        vSelect.disabled = false;
+                    } catch (error) {
+                        console.error('Error fetching variants:', error);
+                    }
+                }
+            });
+
+            vSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption.dataset.price) {
+                    const quantity = document.querySelector('input[name="quantity"]').value || 1;
+                    amountInput.value = selectedOption.dataset.price * quantity;
+                }
+            });
+
+            document.querySelector('input[name="quantity"]').addEventListener('input', function() {
+                const selectedOption = vSelect.options[vSelect.selectedIndex];
+                if (selectedOption && selectedOption.dataset.price) {
+                    amountInput.value = selectedOption.dataset.price * this.value;
+                }
+            });
+        });
+    </script>
 @endsection
