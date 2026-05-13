@@ -12,27 +12,7 @@ class ShopOwnerController extends Controller
     {
         // Simple array of orders
         $orders = Order::where('shop_owner_id', auth()->id())->latest()->get();
-        
-        // Mock data fallback if no real orders exist yet (for demo)
-        if ($orders->isEmpty()) {
-            $orders = [
-                (object)[
-                    'id' => 1,
-                    'order_number' => 'ORD-001',
-                    'product' => (object)['name' => 'Sweater - Sleeveless'],
-                    'manufacturer' => (object)['business_name' => 'XYZ Manufacturing'],
-                    'quantity' => 100,
-                    'unit' => 'pcs',
-                    'due_date' => \Carbon\Carbon::parse('2024-05-15'),
-                    'status' => 'In Progress',
-                    'total_amount' => 100000,
-                    'paid_amount' => 50000,
-                    'progress_percent' => 50
-                ],
-            ];
-            $orders = collect($orders);
-        }
-
+    
         // Initialize all stats to 0 first
         $totalOrders = 0;
         $pending = 0;
@@ -41,7 +21,7 @@ class ShopOwnerController extends Controller
         $totalAmount = 0;
         $totalPaid = 0;
 
-        // Use a basic loop to calculate everything (fresher style)
+        // loop to calculate everything
         foreach ($orders as $order) {
             $totalOrders++;
             $totalAmount = $totalAmount + $order->total_amount;
@@ -98,6 +78,7 @@ class ShopOwnerController extends Controller
 
         return view('shop-owner.orders.create', compact('manufacturers'));
     }
+    
 
     public function storeOrder(Request $request)
     {

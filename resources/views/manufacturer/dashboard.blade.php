@@ -86,14 +86,14 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
-                    @foreach($pendingOrders as $order)
+                    @forelse($pendingOrders as $order)
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-neutral-900">{{ $order['order_id'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600">{{ $order['shop_owner'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600">{{ $order['product'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600">{{ $order['quantity'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600 text-sm italic">{{ $order['due_date'] }}</td>
-                        <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order['amount']) }}</td>
+                        <td class="px-6 py-4 font-medium text-neutral-900">{{ $order->order_number }}</td>
+                        <td class="px-6 py-4 text-neutral-600">{{ $order->shopOwner->name ?? 'Unknown' }}</td>
+                        <td class="px-6 py-4 text-neutral-600">{{ $order->product->name ?? 'N/A' }}</td>
+                        <td class="px-6 py-4 text-neutral-600">{{ $order->quantity }} {{ $order->unit }}</td>
+                        <td class="px-6 py-4 text-neutral-600 text-sm italic">{{ $order->due_date ? $order->due_date->format('M d, Y') : 'No date' }}</td>
+                        <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order->total_amount) }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                                 <button class="px-3 py-1.5 bg-success-600 text-white text-xs font-bold rounded-md hover:bg-success-700 transition-colors uppercase">Accept</button>
@@ -101,7 +101,11 @@
                             </div>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-neutral-500 italic">No pending orders at the moment.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -110,7 +114,7 @@
     <!-- Payment Summary Section -->
     <div class="bg-white rounded-xl border border-neutral-200 shadow-sm p-6">
         <h2 class="text-lg font-bold text-neutral-900 mb-6">Payment Summary</h2>
-        <div class="grid grid-cols-3 gap-8 text-center mb-8">
+        <div class="grid grid-cols-3 gap-8 text-center mb-8 py-6">
             <div>
                 <p class="text-xs text-neutral-500 uppercase font-bold tracking-wider mb-2">Total Revenue</p>
                 <h3 class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalRevenue']) }}</h3>
@@ -124,10 +128,13 @@
                 <h3 class="text-2xl font-bold text-orange-600">Rs {{ number_format($stats['pendingPayment']) }}</h3>
             </div>
         </div>
+        @php
+            $paymentProgress = $stats['totalRevenue'] > 0 ? ($stats['receivedPayment'] / $stats['totalRevenue']) * 100 : 0;
+        @endphp
         <div class="relative w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
-            <div class="absolute inset-y-0 left-0 bg-primary-500 rounded-full transition-all duration-1000" style="width: 15%"></div>
+            <div class="absolute inset-y-0 left-0 bg-primary-500 rounded-full transition-all duration-1000" style="width: {{ $paymentProgress }}%"></div>
         </div>
-        <p class="text-center text-xs text-neutral-500 mt-3 font-semibold">15% Received</p>
+        <p class="text-center text-xs text-neutral-500 mt-3 font-semibold">{{ number_format($paymentProgress, 1) }}% Received</p>
     </div>
 
     <!-- Active Orders Section -->
@@ -151,27 +158,31 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
-                    @foreach($activeOrders as $order)
+                    @forelse($activeOrders as $order)
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-neutral-900">{{ $order['order_id'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600">{{ $order['shop_owner'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600">{{ $order['product'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600">{{ $order['quantity'] }}</td>
-                        <td class="px-6 py-4 text-neutral-600 text-sm italic">{{ $order['due_date'] }}</td>
+                        <td class="px-6 py-4 font-medium text-neutral-900">{{ $order->order_number }}</td>
+                        <td class="px-6 py-4 text-neutral-600">{{ $order->shopOwner->name ?? 'Unknown' }}</td>
+                        <td class="px-6 py-4 text-neutral-600">{{ $order->product->name ?? 'N/A' }}</td>
+                        <td class="px-6 py-4 text-neutral-600">{{ $order->quantity }} {{ $order->unit }}</td>
+                        <td class="px-6 py-4 text-neutral-600 text-sm italic">{{ $order->due_date ? $order->due_date->format('M d, Y') : 'No date' }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden min-w-[60px]">
-                                    <div class="h-full bg-primary-500" style="width: {{ $order['progress'] }}%"></div>
+                                    <div class="h-full bg-primary-500" style="width: {{ $order->progress_percent }}%"></div>
                                 </div>
-                                <span class="text-xs font-bold text-neutral-500">{{ $order['progress'] }}%</span>
+                                <span class="text-xs font-bold text-neutral-500">{{ $order->progress_percent }}%</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order['amount']) }}</td>
+                        <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order->total_amount) }}</td>
                         <td class="px-6 py-4 text-right">
                             <button class="px-3 py-1.5 bg-success-600/50 text-white text-xs font-bold rounded-md cursor-not-allowed uppercase">Complete</button>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="8" class="px-6 py-10 text-center text-neutral-500 italic">No active orders in production.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

@@ -50,14 +50,14 @@
                 <tbody class="divide-y divide-neutral-100">
                     @forelse($orders as $order)
                         <tr class="hover:bg-neutral-50 transition-colors">
-                            <td class="px-6 py-4 font-medium text-neutral-900">{{ $order['order_id'] }}</td>
+                            <td class="px-6 py-4 font-medium text-neutral-900">{{ $order->order_number }}</td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-bold text-neutral-900">{{ $order['product'] }}</div>
-                                <div class="text-[10px] text-neutral-500">Qty: {{ $order['qty'] }}</div>
+                                <div class="text-sm font-bold text-neutral-900">{{ $order->product->name ?? 'N/A' }}</div>
+                                <div class="text-[10px] text-neutral-500">Qty: {{ $order->quantity }} {{ $order->unit }}</div>
                             </td>
-                            <td class="px-6 py-4 text-sm text-neutral-600">{{ $order['shop_owner'] }}</td>
-                            <td class="px-6 py-4 text-sm text-neutral-600">{{ $order['date'] }}</td>
-                            <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order['amount']) }}</td>
+                            <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->shopOwner->name ?? 'Unknown' }}</td>
+                            <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->created_at->format('M d, Y') }}</td>
+                            <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order->total_amount) }}</td>
                             <td class="px-6 py-4 text-center">
                                 @php
                                     $statusClasses = [
@@ -66,15 +66,15 @@
                                         'Completed' => 'bg-green-100 text-green-700',
                                         'Rejected' => 'bg-red-100 text-red-700',
                                     ];
-                                    $class = $statusClasses[$order['status']] ?? 'bg-neutral-100 text-neutral-700';
+                                    $class = $statusClasses[$order->status] ?? 'bg-neutral-100 text-neutral-700';
                                 @endphp
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold {{ $class }}">
-                                    {{ $order['status'] }}
+                                    {{ $order->status }}
                                 </span>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-center gap-2">
-                                    @if($order['status'] == 'Pending')
+                                    @if($order->status == 'Pending')
                                         <button class="px-3 py-1.5 bg-success-600 text-white text-[10px] font-bold rounded shadow-sm hover:bg-success-700 transition-all uppercase">Accept</button>
                                         <button class="px-3 py-1.5 bg-error-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-error-600 transition-all uppercase">Reject</button>
                                     @else

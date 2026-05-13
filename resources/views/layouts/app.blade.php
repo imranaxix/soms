@@ -34,10 +34,8 @@
         }
     </script>
     
-    <!-- Custom Sidebar Transition Styles -->
+    <!-- Custom Styles -->
     <style>
-        .sidebar-expanded { margin-left: 240px; }
-        .sidebar-collapsed { margin-left: 52px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -52,7 +50,7 @@
         @include('components.sidebar')
 
         <!-- Main Wrapper -->
-        <div id="mainWrapper" class="flex-1 flex flex-col min-h-screen transition-all duration-300 sidebar-expanded group-[.collapsed]:sidebar-collapsed">
+        <div id="mainWrapper" class="flex-1 flex flex-col min-h-screen transition-all duration-300 ml-64 group-[.collapsed]:ml-16">
             <!-- Global Header Component (matching Header.js) -->
             @include('components.header')
 

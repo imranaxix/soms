@@ -11,83 +11,41 @@ class ManufacturerController extends Controller
 {
     public function dashboard()
     {
-        // Mock data for Manufacturer Dashboard
+        $user = Auth::user();
+        
+        $allOrders = \App\Models\Order::where('manufacturer_id', $user->id)->get();
+        
         $stats = [
-            'totalOrders' => 3,
-            'pendingApproval' => 1,
-            'inProduction' => 2,
-            'completed' => 0,
-            'totalRevenue' => 200000,
-            'receivedPayment' => 30000,
-            'pendingPayment' => 170000,
+            'totalOrders' => $allOrders->count(),
+            'pendingApproval' => $allOrders->where('status', 'Pending')->count(),
+            'inProduction' => $allOrders->where('status', 'In Progress')->count(),
+            'completed' => $allOrders->where('status', 'Completed')->count(),
+            'totalRevenue' => $allOrders->sum('total_amount'),
+            'receivedPayment' => $allOrders->sum('paid_amount'),
+            'pendingPayment' => $allOrders->sum('total_amount') - $allOrders->sum('paid_amount'),
         ];
 
-        $pendingOrders = [
-            [
-                'order_id' => '#075130',
-                'shop_owner' => 'ABC Textiles',
-                'product' => 'Sweater - Sleeveless',
-                'quantity' => '50 pieces',
-                'due_date' => 'Apr 11, 2026',
-                'amount' => 50000,
-            ]
-        ];
+        $pendingOrders = \App\Models\Order::where('manufacturer_id', $user->id)
+            ->where('status', 'Pending')
+            ->with(['shopOwner', 'product', 'variant'])
+            ->latest()
+            ->get();
 
-        $activeOrders = [
-            [
-                'order_id' => '#731221',
-                'shop_owner' => 'ABC Textiles',
-                'product' => 'T-Shirt - V Neck',
-                'quantity' => '100 pieces',
-                'due_date' => 'Apr 24, 2026',
-                'progress' => 50,
-                'amount' => 100000,
-            ],
-            [
-                'order_id' => '#880759',
-                'shop_owner' => 'ABC Textiles',
-                'product' => 'Sweater - Sleeveless',
-                'quantity' => '50 pieces',
-                'due_date' => 'Apr 24, 2026',
-                'progress' => 30,
-                'amount' => 50000,
-            ]
-        ];
+        $activeOrders = \App\Models\Order::where('manufacturer_id', $user->id)
+            ->where('status', 'In Progress')
+            ->with(['shopOwner', 'product', 'variant'])
+            ->latest()
+            ->get();
 
         return view('manufacturer.dashboard', compact('stats', 'pendingOrders', 'activeOrders'));
     }
 
     public function orders()
     {
-        $orders = [
-            [
-                'order_id' => '#075130',
-                'product' => 'Sweater - Sleeveless',
-                'qty' => 50,
-                'shop_owner' => 'ABC Textiles',
-                'date' => 'Mar 24, 2026',
-                'amount' => 50000,
-                'status' => 'Pending',
-            ],
-            [
-                'order_id' => '#880759',
-                'product' => 'Sweater - Sleeveless',
-                'qty' => 50,
-                'shop_owner' => 'ABC Textiles',
-                'date' => 'Mar 24, 2026',
-                'amount' => 50000,
-                'status' => 'In Progress',
-            ],
-            [
-                'order_id' => '#731221',
-                'product' => 'T-Shirt - V Neck',
-                'qty' => 100,
-                'shop_owner' => 'ABC Textiles',
-                'date' => 'Mar 24, 2026',
-                'amount' => 100000,
-                'status' => 'In Progress',
-            ],
-        ];
+        $orders = \App\Models\Order::where('manufacturer_id', Auth::id())
+            ->with(['shopOwner', 'product', 'variant'])
+            ->latest()
+            ->get();
 
         return view('manufacturer.orders.index', compact('orders'));
     }

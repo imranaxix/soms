@@ -32,11 +32,12 @@
                     </div>
 
                     <div class="mb-6">
-                        <label class="block text-sm font-semibold text-neutral-700 mb-2">Select Variant</label>
+                        <label class="block text-sm font-semibold text-neutral-700 mb-2">Select Sub-Product</label>
                         <select id="variant-select" class="w-full px-4 py-3 pr-14 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" name="variant_id" disabled required>
-                            <option value="">-- Select Variant --</option>
+                            <option value="">-- Select Sub-Product --</option>
                         </select>
                     </div>
+                
 
                     <div class="grid grid-cols-2 gap-6">
                         <div class="mb-6">

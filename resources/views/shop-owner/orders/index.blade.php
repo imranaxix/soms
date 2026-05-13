@@ -113,10 +113,8 @@
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
                     @forelse($orders as $order)
-                    <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-4 text-sm font-semibold font-mono">
-                            <a href="{{ route('shop.orders.show', $order->id) }}" class="text-primary-600 hover:text-primary-700 hover:underline">{{ $order->order_number }}</a>
-                        </td>
+                            <tr class="hover:bg-neutral-50 transition-colors cursor-pointer" onclick="window.location='{{ route('shop.orders.show', $order->id) }}'">
+                        <td class="px-6 py-4 text-sm font-semibold text-primary-600">{{ $order->order_number }}</td>
                         <td class="px-6 py-4">
                             <div class="text-sm font-semibold text-neutral-900">{{ $order->product->name ?? 'N/A' }}</div>
                             <div class="text-[11px] text-neutral-500 uppercase tracking-tighter">Qty: {{ $order->quantity }} {{ $order->unit }}</div>
