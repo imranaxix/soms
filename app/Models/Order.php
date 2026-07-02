@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany; 
 
 class Order extends Model
 {
@@ -28,6 +29,11 @@ class Order extends Model
         'due_date' => 'date',
     ];
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function shopOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'shop_owner_id');
@@ -46,5 +52,10 @@ class Order extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    public function stages()
+    {
+        return $this->hasMany(OrderStage::class)->orderBy('sort_order');
     }
 }

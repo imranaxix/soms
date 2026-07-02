@@ -54,12 +54,14 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <form action="{{ route('manufacturer.catalog.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?')" class="flex justify-end items-center gap-2">
-                                    <a href="{{ route('manufacturer.catalog.show', $product->id) }}" class="px-4 py-1.5 bg-blue-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-blue-600 transition-all uppercase">View</a>
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="px-4 py-1.5 bg-error-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-error-600 transition-all uppercase">Delete</button>
-                                </form>
+                                <div class="flex justify-end gap-2">
+                                    <a href="{{ route('manufacturer.catalog.show', $product->id) }}" class="px-4 py-1.5 bg-blue-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-blue-600 transition-all uppercase inline-block">View</a>
+                                    <form action="{{ route('manufacturer.catalog.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="px-4 py-1.5 bg-error-500 text-white text-[10px] font-bold rounded shadow-sm hover:bg-error-600 transition-all uppercase">Delete</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

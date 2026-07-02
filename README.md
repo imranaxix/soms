@@ -56,3 +56,51 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Testing JazzCash Locally
+
+To test the end-to-end JazzCash Mobile Account integration locally (including receiving webhook callbacks from the JazzCash sandbox sandbox server):
+
+### 1. Start a secure tunnel with Ngrok
+Since the sandbox webhook callback (IPN) must call a public endpoint, run `ngrok` to expose your local Laravel environment (assumed running on port 8000):
+```bash
+ngrok http --url=<your-custom-ngrok-domain> 8000
+```
+Update your local `.env` configuration file to match the secure HTTPS url:
+```
+APP_URL=https://<your-custom-ngrok-domain>
+```
+
+### 2. Configure Return URL/IPN in sandbox panel
+1. Log in to the [JazzCash Sandbox Merchant Portal](https://sandbox.jazzcash.com.pk/).
+2. Navigate to Merchant Settings / Integration Credentials.
+3. Set the **IPN/Return URL** to:
+   ```
+   https://<your-custom-ngrok-domain>/jazzcash/callback
+   ```
+
+### 3. Seed a Test Manufacturer with Sandbox Credentials
+Use the following `tinker` command to configure a manufacturer account with your JazzCash Sandbox keys:
+```bash
+php artisan tinker
+```
+Then run the snippet inside tinker:
+```php
+$manufacturer = App\Models\User::where('role', 'manufacturer')->first();
+$manufacturer->update([
+    'jazzcash_mobile' => '03001234567',
+    'jazzcash_account_title' => 'Sandbox Merchant Account',
+    'jazzcash_merchant_id' => 'MC825731', // Your Sandbox Merchant ID
+    'jazzcash_password' => 'your_sandbox_password', // Encrypted automatically
+    'jazzcash_integrity_salt' => 'your_sandbox_salt', // Encrypted automatically
+]);
+```
+
+### 4. Manual Test Flow
+1. **Login as Shop Owner**: Navigate to `https://<your-custom-ngrok-domain>/login` and sign in.
+2. **Checkout Order**: Navigate to an existing order that has a balance due and click **Pay Now with JazzCash**.
+3. **Trigger Prompt**: Enter your shop owner mobile wallet account and checkout.
+4. **Approve Transaction**: Check your phone / JazzCash app for the test MPIN popup to authorize.
+5. **Inspect Hook Logs**: Monitor ngrok logs to confirm that the `POST /jazzcash/callback` request succeeds.
+6. **Verify Complete**: Verify the database `payments` table status changes to `completed` and the order's `paid_amount` increments successfully.
+

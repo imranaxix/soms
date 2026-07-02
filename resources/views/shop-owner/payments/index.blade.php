@@ -27,7 +27,7 @@
             </div>
             <div>
                 <p class="text-md text-neutral-500">Total Order Value</p>
-                <p class="text-3xl font-bold">RS 200,000</p>
+                <p class="text-3xl font-bold">Rs {{ number_format($totalOrderValue) }}</p>
             </div>
         </div>
 
@@ -39,10 +39,9 @@
             </div>
             <div>
                 <p class="text-md text-neutral-500">Pending Balance</p>
-                <p class="text-3xl font-bold">RS 100,000</p>
+                <p class="text-3xl font-bold">Rs {{ number_format($pendingBalance) }}</p>
             </div>
         </div>
-
 
         <div class="bg-white rounded-xl pr-20 pl-10 py-6 flex  items-center  gap-4 shadow-sm border border-neutral-100">
             <div class="w-20 h-20 bg-success-100 text-success-600 rounded-lg flex items-center justify-center">
@@ -51,8 +50,8 @@
                 </svg>
             </div>
             <div>
-                <p class="text-md text-neutral-500">Tota Paid</p>
-                <p class="text-3xl font-bold">RS 100,000</p>
+                <p class="text-md text-neutral-500">Total Paid</p>
+                <p class="text-3xl font-bold">Rs {{ number_format($totalPaid) }}</p>
             </div>
         </div>
     </div>
@@ -62,68 +61,104 @@
         <button onclick="switchTab('transactions')" id="transactionsTab" class="tab-btn active pb-4 text-sm font-semibold border-b-2 border-primary-600 text-primary-600 transition-all cursor-pointer">
             Transactions
         </button>
-        <button onclick="switchTab('methods')" id="methodsTab" class="tab-btn pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-700 transition-all cursor-pointer">
-            Payment Methods
+        <button onclick="switchTab('balances')" id="balancesTab" class="tab-btn pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-700 transition-all cursor-pointer">
+            Order Balances
         </button>
     </div>
 
     <div id="transactionsContent" class="tab-content block space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
             <div class="px-6 py-5 border-b border-neutral-100">
-                <h2 class="text-lg font-semibold text-neutral-900">Recent Transactions</h2>
+                <h2 class="text-lg font-semibold text-neutral-900">Completed Transactions</h2>
             </div>
             
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead >
+                    <thead>
                         <tr class="bg-primary-600 border-b border-neutral-100 text-[13px] font-medium text-white uppercase tracking-wider">
                             <th class="px-6 py-4">Date</th>
-                            <th class="px-6 py-4">Order ID</th>
+                            <th class="px-6 py-4">Order #</th>
                             <th class="px-6 py-4">Paid To</th>
+                            <th class="px-6 py-4">Reference</th>
                             <th class="px-6 py-4 text-right">Amount</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-neutral-100">
-                        @foreach($orders as $order)
-                            @foreach($order['payments'] as $payment)
-                            <tr class="hover:bg-neutral-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-neutral-500">{{ \Carbon\Carbon::parse($payment['date'])->format('M d, Y') }}</td>
-                                <td class="px-6 py-4 text-sm font-semibold text-primary-600">#{{ $order['id'] }}</td>
-                                <td class="px-6 py-4 text-sm font-medium text-neutral-800">{{ $order['manufacturerName'] }}</td>
-                                <td class="px-6 py-4 text-sm font-extrabold text-success-600 text-right">Rs {{ number_format($payment['amount']) }}</td>
-                            </tr>
-                            @endforeach
-                        @endforeach
+                        @forelse($transactions as $trx)
+                        <tr class="hover:bg-neutral-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-neutral-500">{{ \Carbon\Carbon::parse($trx['date'])->format('M d, Y') }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-primary-600">
+                                <a href="{{ route('shop.orders.show', $trx['order_id']) }}">{{ $trx['order_number'] }}</a>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-medium text-neutral-800">{{ $trx['manufacturer'] }}</td>
+                            <td class="px-6 py-4 text-xs text-neutral-400 font-mono">{{ $trx['txn_ref_no'] }}</td>
+                            <td class="px-6 py-4 text-sm font-extrabold text-success-600 text-right">Rs {{ number_format($trx['amount']) }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-sm text-neutral-400">No completed payments yet.</td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="methodsContent" class="tab-content hidden">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="p-6 bg-white border border-neutral-100 rounded-2xl shadow-sm flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-[#ED1C24] rounded-xl flex items-center justify-center text-white font-bold italic">JC</div>
-                    <div>
-                        <p class="font-bold text-neutral-900">JazzCash</p>
-                        <p class="text-xs text-neutral-400">Linked Wallet</p>
-                    </div>
-                </div>
-                <span class="text-xs font-bold text-success-600 bg-success-50 px-2 py-1 rounded">Active</span>
+    <div id="balancesContent" class="tab-content hidden space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
+            <div class="px-6 py-5 border-b border-neutral-100">
+                <h2 class="text-lg font-semibold text-neutral-900">Order Balances</h2>
             </div>
-
-            <div class="p-6 bg-white border border-neutral-100 rounded-2xl shadow-sm flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center text-white">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-                    </div>
-                    <div>
-                        <p class="font-bold text-neutral-900">Bank Transfer</p>
-                        <p class="text-xs text-neutral-400">Direct IBFT</p>
-                    </div>
-                </div>
-                <span class="text-xs font-bold text-neutral-500 bg-neutral-50 px-2 py-1 rounded">Available</span>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-primary-600 border-b border-neutral-100 text-[13px] font-medium text-white uppercase tracking-wider">
+                            <th class="px-6 py-4">Order #</th>
+                            <th class="px-6 py-4">Product</th>
+                            <th class="px-6 py-4">Manufacturer</th>
+                            <th class="px-6 py-4 text-right">Total</th>
+                            <th class="px-6 py-4 text-right">Paid</th>
+                            <th class="px-6 py-4 text-right">Balance</th>
+                            <th class="px-6 py-4 text-center">Status</th>
+                            <th class="px-6 py-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-neutral-100">
+                        @forelse($orderBalances as $row)
+                        <tr class="hover:bg-neutral-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold text-primary-600">
+                                <a href="{{ route('shop.orders.show', $row['order_id']) }}">{{ $row['order_number'] }}</a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-neutral-800">{{ $row['product'] }}</td>
+                            <td class="px-6 py-4 text-sm text-neutral-600">{{ $row['manufacturer'] }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs {{ number_format($row['total']) }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-success-600 text-right">Rs {{ number_format($row['paid']) }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-orange-600 text-right">Rs {{ number_format($row['balance']) }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold
+                                    {{ $row['status'] === 'Completed' ? 'bg-green-100 text-green-700' : ($row['status'] === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700') }}">
+                                    {{ $row['status'] }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                @if($row['balance'] > 0)
+                                <a href="{{ route('shop.orders.pay', $row['order_id']) }}"
+                                   class="text-xs font-bold text-white bg-gradient-to-r from-[#e8001a] to-[#ff6600] px-3 py-1.5 rounded-lg hover:opacity-90 transition">
+                                    Pay Now
+                                </a>
+                                @else
+                                <span class="text-xs text-success-600 font-bold">Fully Paid ✓</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center text-sm text-neutral-400">No orders found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

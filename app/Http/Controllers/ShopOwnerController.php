@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ShopOwnerController extends Controller
@@ -110,6 +111,10 @@ class ShopOwnerController extends Controller
             'progress_percent' => 0,
         ]);
 
+        // Notify the manufacturer about the new order
+        $manufacturer = \App\Models\User::find($request->manufacturer_id);
+        $manufacturer->notify(new \App\Notifications\NewOrderReceived($order, auth()->user()));
+
         return redirect()->route('shop.orders.index')->with('success', 'Order created successfully! Order Number: ' . $order->order_number);
     }
 
@@ -151,7 +156,7 @@ class ShopOwnerController extends Controller
 
     public function showOrder($id)
     {
-        $order = Order::with(['manufacturer', 'product', 'variant'])->findOrFail($id);
+        $order = Order::with(['manufacturer', 'product', 'variant', 'stages'])->findOrFail($id);
 
         // Ensure the order belongs to the authenticated shop owner
         if ($order->shop_owner_id !== auth()->id()) {
@@ -159,6 +164,34 @@ class ShopOwnerController extends Controller
         }
 
         return view('shop-owner.orders.show', compact('order'));
+    }
+
+    public function cancelOrder($id)
+    {
+        $order = Order::where('shop_owner_id', auth()->id())
+            ->where('status', 'Pending')
+            ->findOrFail($id);
+
+        $order->update(['status' => 'Cancelled']);
+
+        // Notify the manufacturer
+        $order->manufacturer->notify(new \App\Notifications\OrderStatusChanged($order, auth()->user(), 'Cancelled'));
+
+        return back()->with('success', 'Order has been cancelled.');
+    }
+
+    public function confirmDelivery($id)
+    {
+        $order = Order::where('shop_owner_id', auth()->id())
+            ->where('status', 'Delivered')
+            ->findOrFail($id);
+
+        $order->update(['status' => 'Completed']);
+
+        // Notify the manufacturer
+        $order->manufacturer->notify(new \App\Notifications\OrderStatusChanged($order, auth()->user(), 'Completed'));
+
+        return back()->with('success', 'Order delivery confirmed. Order is now Completed.');
     }
 
     public function connections()
@@ -172,13 +205,49 @@ class ShopOwnerController extends Controller
 
     public function payments()
     {
-        $orders = [
-            ['id' => 'ORD-001', 'productName' => 'Men\'s Denim Jacket', 'manufacturerName' => 'Elite Garments', 'shopOwnerName' => 'City Fashion Store', 'totalAmount' => 150000, 'totalPaid' => 75000, 'remainingBalance' => 75000, 'status' => 'Pending', 'payments' => [['id' => 'P1', 'date' => '2024-04-04', 'method' => 'bank_transfer', 'amount' => 75000]]],
-            ['id' => 'ORD-002', 'productName' => 'Cotton T-Shirts', 'manufacturerName' => 'Z-Fashion', 'shopOwnerName' => 'City Fashion Store', 'totalAmount' => 240000, 'totalPaid' => 0, 'remainingBalance' => 240000, 'status' => 'Pending', 'payments' => []],
-            ['id' => 'ORD-003', 'productName' => 'Silk Scarves', 'manufacturerName' => 'Heritage Weaves', 'shopOwnerName' => 'City Fashion Store', 'totalAmount' => 80000, 'totalPaid' => 80000, 'remainingBalance' => 0, 'status' => 'Completed', 'payments' => [['id' => 'P2', 'date' => '2024-04-02', 'method' => 'upi', 'amount' => 80000]]],
-        ];
+        $user = Auth::user();
 
-        return view('shop-owner.payments.index', compact('orders'));
+        // Real orders with their completed payments
+        $orders = \App\Models\Order::where('shop_owner_id', $user->id)
+            ->with(['payments' => fn($q) => $q->where('status', 'completed')->latest(), 'manufacturer', 'product'])
+            ->latest()
+            ->get();
+
+        // Aggregate stats
+        $totalOrderValue  = $orders->sum('total_amount');
+        $totalPaid        = $orders->sum('paid_amount');
+        $pendingBalance   = $totalOrderValue - $totalPaid;
+
+        // Flat list of completed transactions for the table
+        $transactions = $orders->flatMap(function ($order) {
+            return $order->payments->map(fn($p) => [
+                'date'             => $p->paid_at ?? $p->created_at,
+                'order_number'     => $order->order_number,
+                'order_id'         => $order->id,
+                'manufacturer'     => $order->manufacturer->business_name ?? $order->manufacturer->name,
+                'txn_ref_no'       => $p->txn_ref_no,
+                'pp_response_code' => $p->pp_response_code,
+                'amount'           => $p->amount,
+                'status'           => $p->status,
+            ]);
+        })->sortByDesc('date')->values();
+
+        // Per-order balance rows
+        $orderBalances = $orders->map(fn($order) => [
+            'order_number' => $order->order_number,
+            'order_id'     => $order->id,
+            'product'      => $order->product->name ?? '—',
+            'manufacturer' => $order->manufacturer->business_name ?? $order->manufacturer->name,
+            'total'        => $order->total_amount,
+            'paid'         => $order->paid_amount,
+            'balance'      => $order->total_amount - $order->paid_amount,
+            'status'       => $order->status,
+        ])->values();
+
+        return view('shop-owner.payments.index', compact(
+            'orders', 'transactions', 'orderBalances',
+            'totalOrderValue', 'totalPaid', 'pendingBalance'
+        ));
     }
 
     public function reports()

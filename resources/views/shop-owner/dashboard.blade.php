@@ -16,6 +16,20 @@
 @endsection
 
 @section('content')
+    {{-- Flash Messages --}}
+    @if(session('success'))
+        <div class="flex items-center gap-3 px-5 py-4 mb-6 bg-success-50 border border-success-200 text-success-700 rounded-xl text-sm font-medium">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 13.01 9 10.01"/></svg>
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="flex items-center gap-3 px-5 py-4 mb-6 bg-error-50 border border-error-200 text-error-700 rounded-xl text-sm font-medium">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-4">
         <div class="bg-white rounded-xl p-6 flex items-center gap-4 shadow-sm border border-neutral-100">
@@ -138,12 +152,12 @@
                                 <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->quantity }} {{ $order->unit }}</td>
                                 <td class="px-6 py-4 text-sm text-neutral-600">{{ $order->due_date->format('M d, Y') }}</td>
                                 <td class="px-6 py-4 text-sm">
-                                    @php
+                                @php
                                         $statusClasses = [
-                                            'Pending' => 'bg-warning-100 text-warning-600',
+                                            'Pending'     => 'bg-warning-100 text-warning-600',
                                             'In Progress' => 'bg-primary-100 text-primary-600',
-                                            'Completed' => 'bg-success-100 text-success-600',
-                                            'Cancelled' => 'bg-error-100 text-error-600',
+                                            'Completed'   => 'bg-success-100 text-success-600',
+                                            'Rejected'    => 'bg-error-100 text-error-600',
                                         ];
                                         $class = $statusClasses[$order->status] ?? 'bg-neutral-100 text-neutral-600';
                                     @endphp

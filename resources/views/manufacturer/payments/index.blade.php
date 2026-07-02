@@ -79,10 +79,12 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
-                    @foreach($transactions as $trx)
+                    @forelse($transactions as $trx)
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-5 text-sm font-medium text-neutral-600">{{ $trx['date'] }}</td>
-                        <td class="px-6 py-5 text-sm font-bold text-neutral-900">{{ $trx['order_id'] }}</td>
+                        <td class="px-6 py-5 text-sm font-medium text-neutral-600">{{ \Carbon\Carbon::parse($trx['date'])->format('M d, Y') }}</td>
+                        <td class="px-6 py-5 text-sm font-bold text-primary-600">
+                            <a href="{{ route('manufacturer.orders.show', $trx['order_id']) }}">{{ $trx['order_number'] }}</a>
+                        </td>
                         <td class="px-6 py-5 text-sm text-neutral-600">{{ $trx['received_from'] }}</td>
                         <td class="px-6 py-5 text-center">
                             <span class="inline-flex items-center px-3 py-1 bg-neutral-100 border border-neutral-200 rounded text-[10px] font-bold text-neutral-500 uppercase tracking-tighter italic">
@@ -91,7 +93,11 @@
                         </td>
                         <td class="px-6 py-5 text-right font-bold text-success-600">Rs {{ number_format($trx['amount']) }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-sm text-neutral-400">No completed payments received yet.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -106,8 +112,9 @@
             <table class="w-full text-left">
                 <thead>
                     <tr class="bg-primary-600 text-white">
-                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Order ID</th>
+                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Order #</th>
                         <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Product</th>
+                        <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Shop Owner</th>
                         <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-right">Total Amount</th>
                         <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-right">Paid</th>
                         <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-right">Balance</th>
@@ -115,20 +122,28 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
-                    @foreach($orderBalances as $item)
+                    @forelse($orderBalances as $item)
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-5 text-sm font-bold text-neutral-900">{{ $item['order_id'] }}</td>
+                        <td class="px-6 py-5 text-sm font-bold text-primary-600">
+                            <a href="{{ route('manufacturer.orders.show', $item['order_id']) }}">{{ $item['order_number'] }}</a>
+                        </td>
                         <td class="px-6 py-5 text-sm text-neutral-600">{{ $item['product'] }}</td>
+                        <td class="px-6 py-5 text-sm text-neutral-500">{{ $item['shop_owner'] }}</td>
                         <td class="px-6 py-5 text-right font-bold text-neutral-900">Rs {{ number_format($item['total']) }}</td>
                         <td class="px-6 py-5 text-right font-bold text-success-600">Rs {{ number_format($item['paid']) }}</td>
                         <td class="px-6 py-5 text-right font-bold text-orange-600">Rs {{ number_format($item['balance']) }}</td>
                         <td class="px-6 py-5 text-center">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold
+                                {{ $item['status'] === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' }}">
                                 {{ $item['status'] }}
                             </span>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-neutral-400">No active orders found.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

@@ -5,6 +5,8 @@ use App\Http\Controllers\ShopOwnerController;
 use App\Http\Controllers\ManufacturerController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConnectionController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentController;
 
 // Simple redirect to the login
 Route::get('/', function () {
@@ -25,6 +27,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/connections/{id}/reject', [ConnectionController::class, 'reject'])->name('connections.reject');
     Route::delete('/connections/{id}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
     Route::get('/user/{id}', [ConnectionController::class, 'showProfile'])->name('user.show');
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'readAndRedirect'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
 });
 
 // Basic Shop Routes (Protected)
@@ -39,21 +43,41 @@ Route::middleware(['auth', 'role:shop_owner'])->group(function () {
     Route::get('/shop/api/manufacturers/{id}/products', [ShopOwnerController::class, 'getProducts'])->name('shop.api.manufacturers.products');
     Route::get('/shop/api/products/{id}/variants', [ShopOwnerController::class, 'getVariants'])->name('shop.api.products.variants');
     Route::get('/shop/orders/{id}', [ShopOwnerController::class, 'showOrder'])->name('shop.orders.show');
+    Route::post('/shop/orders/{id}/cancel', [ShopOwnerController::class, 'cancelOrder'])->name('shop.orders.cancel');
+    Route::post('/shop/orders/{id}/confirm-delivery', [ShopOwnerController::class, 'confirmDelivery'])->name('shop.orders.confirm-delivery');
     
     // Other Shop Pages
     Route::get('/shop/connections', [ShopOwnerController::class, 'connections'])->name('shop.connections');
     Route::get('/shop/payments', [ShopOwnerController::class, 'payments'])->name('shop.payments');
     Route::get('/shop/reports', [ShopOwnerController::class, 'reports'])->name('shop.reports');
+
+    // Payment Checkout Routes
+    Route::get('/shop-owner/orders/{order}/pay', [PaymentController::class, 'showPaymentForm'])->name('shop.orders.pay');
+    Route::post('/shop-owner/orders/{order}/pay', [PaymentController::class, 'initiatePayment'])->name('shop.orders.pay.initiate');
+    Route::get('/shop/orders/{order}/payment-status', [PaymentController::class, 'getPaymentStatus'])->name('shop.orders.payment-status');
 });
+
+// JazzCash Webhook Callback (Public, no auth)
+Route::post('/jazzcash/callback', [PaymentController::class, 'callback'])->name('jazzcash.callback');
 
 // Manufacturer Routes (Protected)
 Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('manufacturer.')->group(function () {
     Route::get('/dashboard', [ManufacturerController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [ManufacturerController::class, 'profile'])->name('profile');
+    Route::get('/payment-methods', [ManufacturerController::class, 'paymentMethods'])->name('payment-methods');
+    Route::post('/payment-methods/jazzcash', [ManufacturerController::class, 'saveJazzCash'])->name('payment-methods.jazzcash.save');
+    Route::delete('/payment-methods/jazzcash', [ManufacturerController::class, 'removeJazzCash'])->name('payment-methods.jazzcash.remove');
     Route::get('/orders', [ManufacturerController::class, 'orders'])->name('orders.index');
+    Route::get('/orders/{id}', [ManufacturerController::class, 'showOrder'])->name('orders.show');
+    Route::post('/orders/{id}/accept', [ManufacturerController::class, 'acceptOrder'])->name('orders.accept');
+    Route::post('/orders/{id}/reject', [ManufacturerController::class, 'rejectOrder'])->name('orders.reject');
+    Route::post('/orders/{id}/cancel', [ManufacturerController::class, 'cancelAcceptedOrder'])->name('orders.cancel');
+    Route::post('/orders/{id}/stages/{stageId}/toggle', [ManufacturerController::class, 'toggleStage'])->name('orders.stages.toggle');
     Route::get('/catalog', [ManufacturerController::class, 'catalog'])->name('catalog.index');
     Route::get('/catalog/create', [ManufacturerController::class, 'createProduct'])->name('catalog.create');
     Route::post('/catalog', [ManufacturerController::class, 'storeProduct'])->name('catalog.store');
+    Route::get('/catalog/{id}/edit', [ManufacturerController::class, 'editProduct'])->name('catalog.edit');
+    Route::put('/catalog/{id}', [ManufacturerController::class, 'updateProduct'])->name('catalog.update');
     Route::get('/catalog/{id}', [ManufacturerController::class, 'showProduct'])->name('catalog.show');
     Route::delete('/catalog/{id}', [ManufacturerController::class, 'destroyProduct'])->name('catalog.destroy');
 

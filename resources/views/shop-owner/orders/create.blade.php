@@ -8,6 +8,20 @@
 @section('content')
     <div class="max-w-3xl mx-auto mt-4 px-0">
         <div class="bg-white rounded-xl shadow-sm border border-neutral-100 p-8">
+            @if ($errors->any())
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex items-center gap-2 text-red-800 font-bold mb-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        Please fix the following errors:
+                    </div>
+                    <ul class="list-disc list-inside text-sm text-red-600">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form action="{{ route('shop.orders.store') }}" method="POST">
                 @csrf
                 <!-- Product Details -->

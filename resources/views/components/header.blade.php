@@ -1,4 +1,4 @@
-<header class="h-16 bg-white border-b border-neutral-200 px-6 flex items-center justify-between sticky top-0 z-190 shadow-sm">
+<header class="h-16 bg-white border-b border-neutral-200 px-6 flex items-center justify-between sticky top-0 z-[190] shadow-sm">
     <!-- Brand/Logo (matching Header.js) -->
     <div class="flex items-center gap-3">
         <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-primary-600/20">
@@ -19,7 +19,7 @@
         </button>
 
         <!-- Notifications -->
-        <div class="relative">
+        <div class="relative" style="z-index: 1;">
             <button id="notificationBtn" onclick="toggleNotifications()" class="w-10 h-10 flex items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 transition-all relative" title="Notifications">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -33,12 +33,18 @@
                 <div class="p-4 border-b border-neutral-100 flex justify-between items-center">
                     <h3 class="font-bold text-neutral-900">Notifications</h3>
                     @if(auth()->user()->unreadNotifications->count() > 0)
-                    <span class="text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-1 rounded-full">{{ auth()->user()->unreadNotifications->count() }} New</span>
+                    <div class="flex items-center gap-2">
+                        <form action="{{ route('notifications.markAllRead') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="text-[10px] font-bold text-primary-600 hover:text-primary-800 uppercase tracking-wider">Mark all as read</button>
+                        </form>
+                        <span class="text-[10px] font-semibold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">{{ auth()->user()->unreadNotifications->count() }} New</span>
+                    </div>
                     @endif
                 </div>
                 <div class="max-h-[300px] overflow-y-auto w-full">
                     @forelse(auth()->user()->notifications->take(5) as $notification)
-                    <a href="{{ $notification->data['url'] ?? '#' }}" class="block p-4 border-b border-neutral-50 hover:bg-neutral-50 transition-colors text-left flex flex-col items-start {{ is_null($notification->read_at) ? 'bg-primary-50/50' : '' }}">
+                    <a href="{{ route('notifications.read', $notification->id) }}" class="block p-4 border-b border-neutral-50 hover:bg-neutral-50 transition-colors text-left flex flex-col items-start {{ is_null($notification->read_at) ? 'bg-primary-50/50' : '' }}">
                         <p class="text-sm font-semibold text-neutral-900 w-full text-left">{{ $notification->data['message'] ?? 'Notification' }}</p>
                         <p class="text-xs text-neutral-500 mt-1 pb-1 w-full text-left">{{ $notification->data['details'] ?? '' }}</p>
                         <p class="text-[10px] text-neutral-400 mt-1 w-full text-left">{{ $notification->created_at->diffForHumans() }}</p>

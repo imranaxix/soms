@@ -24,7 +24,11 @@
                 <h1 class="text-2xl font-bold text-neutral-900">{{ $product->name }}</h1>
                 <p class="mt-2 text-neutral-600">{{ $product->description ?: 'No description provided.' }}</p>
             </div>
-            <div class="text-right">
+            <div class="text-right space-y-3 flex flex-col items-end">
+                <a href="{{ route('manufacturer.catalog.edit', $product->id) }}" class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm text-xs uppercase">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Edit Product
+                </a>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-primary-50 text-primary-600 border border-primary-100">
                     {{ $product->variants->count() }} Variants
                 </span>

@@ -80,7 +80,9 @@
                     <option value="All">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
+                    <option value="Delivered">Delivered</option>
                     <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
                     <option value="Rejected">Rejected</option>
                 </select>
             </div>
@@ -132,10 +134,12 @@
                         <td class="px-6 py-4 text-center">
                             @php
                                 $statusClasses = [
-                                    'Pending' => 'bg-warning-100 text-warning-600',
+                                    'Pending'     => 'bg-warning-100 text-warning-600',
                                     'In Progress' => 'bg-primary-100 text-primary-600',
-                                    'Completed' => 'bg-success-100 text-success-600',
-                                    'Cancelled' => 'bg-error-100 text-error-600',
+                                    'Delivered'   => 'bg-purple-100 text-purple-600',
+                                    'Completed'   => 'bg-success-100 text-success-600',
+                                    'Rejected'    => 'bg-error-100 text-error-600',
+                                    'Cancelled'   => 'bg-neutral-200 text-neutral-600',
                                 ];
                                 $class = $statusClasses[$order->status] ?? 'bg-neutral-100 text-neutral-600';
                             @endphp

@@ -7,6 +7,19 @@
 
 @section('content')
 <div class="space-y-6">
+    {{-- Flash Messages --}}
+    @if(session('success'))
+        <div class="flex items-center gap-3 px-5 py-4 bg-success-50 border border-success-200 text-success-700 rounded-xl text-sm font-medium">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 13.01 9 10.01"/></svg>
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="flex items-center gap-3 px-5 py-4 bg-error-50 border border-error-200 text-error-700 rounded-xl text-sm font-medium">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ session('error') }}
+        </div>
+    @endif
     <!-- KPI Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Orders -->
@@ -96,8 +109,20 @@
                         <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order->total_amount) }}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
-                                <button class="px-3 py-1.5 bg-success-600 text-white text-xs font-bold rounded-md hover:bg-success-700 transition-colors uppercase">Accept</button>
-                                <button class="px-3 py-1.5 bg-error-500 text-white text-xs font-bold rounded-md hover:bg-error-600 transition-colors uppercase">Reject</button>
+                                <a href="{{ route('manufacturer.orders.show', $order->id) }}"
+                                   class="px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-md hover:bg-primary-700 transition-colors uppercase">View</a>
+
+                                <form action="{{ route('manufacturer.orders.accept', $order->id) }}" method="POST"
+                                      onsubmit="return confirm('Accept order {{ $order->order_number }}?')">
+                                    @csrf
+                                    <button type="submit" class="px-3 py-1.5 bg-success-600 text-white text-xs font-bold rounded-md hover:bg-success-700 transition-colors uppercase">Accept</button>
+                                </form>
+
+                                <form action="{{ route('manufacturer.orders.reject', $order->id) }}" method="POST"
+                                      onsubmit="return confirm('Reject order {{ $order->order_number }}?')">
+                                    @csrf
+                                    <button type="submit" class="px-3 py-1.5 bg-error-500 text-white text-xs font-bold rounded-md hover:bg-error-600 transition-colors uppercase">Reject</button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -141,7 +166,7 @@
     <div class="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div class="p-6 border-b border-neutral-100 flex items-center justify-between">
             <h2 class="text-lg font-bold text-neutral-900">Active Orders</h2>
-            <button class="text-xs font-bold text-blue-600 hover:text-blue-700 uppercase">View All</button>
+            <a href="{{ route('manufacturer.orders.index') }}" class="text-xs font-bold text-blue-600 hover:text-blue-700 uppercase">View All</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -175,7 +200,8 @@
                         </td>
                         <td class="px-6 py-4 font-semibold text-neutral-900">Rs {{ number_format($order->total_amount) }}</td>
                         <td class="px-6 py-4 text-right">
-                            <button class="px-3 py-1.5 bg-success-600/50 text-white text-xs font-bold rounded-md cursor-not-allowed uppercase">Complete</button>
+                            <a href="{{ route('manufacturer.orders.show', $order->id) }}"
+                               class="px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-md hover:bg-primary-700 transition-colors uppercase">View</a>
                         </td>
                     </tr>
                     @empty

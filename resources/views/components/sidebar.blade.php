@@ -88,6 +88,17 @@
                 </div>
             </a>
 
+            <a href="{{ route('manufacturer.payment-methods') }}" 
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('manufacturer.payment-methods*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
+                    <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M2 10h20"/>
+                    </svg>
+                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Payment Methods</span>
+                </div>
+            </a>
+
             <a href="{{ route('manufacturer.connections.index') }}" 
                class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('manufacturer.connections.*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
                 <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
