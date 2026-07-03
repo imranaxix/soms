@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-
 class PaymentController extends Controller
 {
     protected $jazzCashService;
@@ -42,7 +41,8 @@ class PaymentController extends Controller
     }
 
     /**
-     * Initiate payment.
+     * Initiate payment - HTTP POST Page Redirect Method
+     * Redirects user to JazzCash gateway instead of calling API
      */
     public function initiatePayment(Request $request, Order $order)
     {
@@ -54,37 +54,36 @@ class PaymentController extends Controller
         // Guard: manufacturer must have all three merchant credentials configured
         if (!$order->manufacturer || !$order->manufacturer->hasJazzCash()) {
             return redirect()->route('shop.orders.show', $order->id)
-                ->with('error', 'Payment cannot be initiated: the manufacturer has not configured their JazzCash merchant credentials (Merchant ID, Password, and Integrity Salt).');
+                ->with('error', 'Payment cannot be initiated: the manufacturer has not configured their JazzCash merchant credentials.');
         }
 
         $balanceDue = $order->total_amount - $order->paid_amount;
 
         // Validate amount, shop owner mobile number, and last 6 digits of CNIC
         $request->validate([
-            'amount'       => ['required', 'numeric', 'min:1', 'max:' . $balanceDue],
+            'amount'            => ['required', 'numeric', 'min:1', 'max:' . $balanceDue],
             'shop_owner_mobile' => ['required', 'regex:/^03[0-9]{9}$/'],
-            'cnic'         => ['required', 'regex:/^[0-9]{6}$/'],
+            'cnic'              => ['required', 'regex:/^[0-9]{6}$/'],
         ], [
             'shop_owner_mobile.regex' => 'Mobile number must be a valid Pakistani number starting with 03 (e.g. 03001234567).',
-            'cnic.regex'   => 'Please provide the last 6 digits of your CNIC.',
+            'cnic.regex'               => 'Please provide the last 6 digits of your CNIC.',
         ]);
 
-        // Generate a unique txn_ref_no (format T{Ymd}ORD{order_id})
-        // Appending a microtime/timestamp ensures it is globally unique and doesn't collide on retries
+        // Generate a unique txn_ref_no
         $txnRefNo = 'T' . date('ymdHis') . $order->id . strtoupper(Str::random(3));
 
         // Create a Payment record with status=pending
         $payment = Payment::create([
-            'order_id' => $order->id,
-            'payer_id' => Auth::id(),
-            'payee_id' => $order->manufacturer_id,
-            'amount' => $request->amount,
+            'order_id'   => $order->id,
+            'payer_id'   => Auth::id(),
+            'payee_id'   => $order->manufacturer_id,
+            'amount'     => $request->amount,
             'txn_ref_no' => $txnRefNo,
-            'status' => 'pending',
+            'status'     => 'pending',
         ]);
 
-        // Call JazzCashService::processWalletPayment passing the order's manufacturer and CNIC
-        $response = $this->jazzCashService->processWalletPayment(
+        // Build JazzCash redirect form payload
+        $payload = $this->jazzCashService->buildRedirectPayload(
             $request->amount,
             $txnRefNo,
             $request->shop_owner_mobile,
@@ -92,27 +91,10 @@ class PaymentController extends Controller
             $request->cnic
         );
 
-        Log::info('JazzCash initiation response: ', $response);
+        Log::info('JazzCash redirect payload built for txn: ' . $txnRefNo);
 
-        if (isset($response['pp_ResponseCode'])) {
-            $payment->update([
-                'pp_txn_id' => $response['pp_TxnRefNo'] ?? null,
-                'pp_response_code' => $response['pp_ResponseCode'],
-                'pp_response_message' => $response['pp_ResponseMessage'] ?? null,
-                'pp_retrieval_ref_no' => $response['pp_RetrievalReferenceNo'] ?? null,
-            ]);
-
-            if (in_array($response['pp_ResponseCode'], ['000', '124', '200'])) {
-                return redirect()->route('shop.orders.show', $order->id)
-                    ->with('success', 'Payment initiated successfully. ' . ($response['pp_ResponseMessage'] ?? ''));
-            } else {
-                $payment->update(['status' => 'failed']);
-                return back()->withErrors(['error' => 'Payment Failed: ' . ($response['pp_ResponseMessage'] ?? 'Unknown Error')]);
-            }
-        }
-
-        $payment->update(['status' => 'failed']);
-        return back()->withErrors(['error' => 'Failed to connect to payment gateway.']);
+        // Return HTML form that auto-submits to JazzCash
+        return view('shop-owner.orders.jazzcash-redirect', compact('payload'));
     }
 
     /**
@@ -127,9 +109,9 @@ class PaymentController extends Controller
         $latestPayment = $order->payments()->latest()->first();
 
         return response()->json([
-            'status' => $latestPayment ? $latestPayment->status : null,
+            'status'      => $latestPayment ? $latestPayment->status : null,
             'paid_amount' => $order->paid_amount,
-            'balance' => $order->total_amount - $order->paid_amount,
+            'balance'     => $order->total_amount - $order->paid_amount,
         ]);
     }
 
@@ -138,11 +120,13 @@ class PaymentController extends Controller
      */
     public function callback(Request $request)
     {
-        Log::info('JazzCash Callback payload: ', $request->all());
+        Log::info('JazzCash Callback payload received: ', $request->all());
 
+        // Extract clean incoming fields excluding framework parameters
+        $incomingData = $request->except(['/']);
         $txnRefNo = $request->input('pp_TxnRefNo');
 
-        // Look up the Payment by pp_TxnRefNo (or pp_TxnRefNo column/variable)
+        // Look up the Payment by txn_ref_no
         $payment = Payment::where('txn_ref_no', $txnRefNo)->first();
 
         if (!$payment) {
@@ -150,55 +134,55 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Payment record not found'], 404);
         }
 
-        // Load the payee (manufacturer)
+        // Load payee manufacturer profiles
         $manufacturer = $payment->payee;
         if (!$manufacturer) {
-            Log::error('JazzCash Callback: Manufacturer not found for payment ID: ' . $payment->id);
-            return response()->json(['error' => 'Manufacturer not found'], 404);
+            Log::error('JazzCash Callback: Manufacturer profile missing for payment ID: ' . $payment->id);
+            return response()->json(['error' => 'Manufacturer profile missing'], 404);
         }
 
-        // Decrypt their integrity salt (handled automatically via cast)
         $salt = $manufacturer->jazzcash_integrity_salt;
-
         if (empty($salt)) {
-            Log::error('JazzCash Callback: Integrity salt not configured for manufacturer: ' . $manufacturer->id);
-            return response()->json(['error' => 'Integrity salt not configured'], 400);
+            Log::error('JazzCash Callback: Salt string missing for manufacturer target reference ID: ' . $manufacturer->id);
+            return response()->json(['error' => 'Integrity salt missing'], 400);
         }
 
-        // Regenerate secure hash from callback payload and compare
-        $regeneratedHash = $this->jazzCashService->generateSecureHash($request->all(), $salt);
+        // Regenerate and verify inbound secure hash matching
+        $regeneratedHash = $this->jazzCashService->generateSecureHash($incomingData, $salt);
         $receivedHash = $request->input('pp_SecureHash');
 
         if (strtoupper($regeneratedHash) !== strtoupper($receivedHash)) {
-            Log::error("JazzCash Callback: Secure hash mismatch. Generated: {$regeneratedHash}, Received: {$receivedHash}");
-            return response()->json(['error' => 'Invalid secure hash'], 400);
+            Log::error("JazzCash Callback: Secure signature validation mismatch. Expected: {$regeneratedHash}, Received: {$receivedHash}");
+            return response()->json(['error' => 'Inbound secure hash signature validation mismatch'], 400);
         }
 
-        // If hash matches and pp_ResponseCode is 000, mark Payment completed
+        // Identify response status elements (Handling intentional gateway typo field 'pp_RetreivalReferenceNo')
         $responseCode = $request->input('pp_ResponseCode');
         $payment->update([
-            'pp_txn_id' => $request->input('pp_TxnRefNo'),
-            'pp_response_code' => $responseCode,
+            'pp_txn_id'           => $request->input('pp_TxnRefNo'),
+            'pp_response_code'    => $responseCode,
             'pp_response_message' => $request->input('pp_ResponseMessage'),
-            'pp_retrieval_ref_no' => $request->input('pp_RetrievalReferenceNo'),
+            'pp_retrieval_ref_no' => $request->input('pp_RetreivalReferenceNo') ?? $request->input('pp_RetrievalReferenceNo'),
         ]);
 
         if ($responseCode === '000') {
             $payment->update([
-                'status' => 'completed',
+                'status'  => 'completed',
                 'paid_at' => now(),
             ]);
 
-            // Update the Order's balance
+            // Safely increment order tracking levels
             $order = $payment->order;
             $order->increment('paid_amount', $payment->amount);
 
-            Log::info("JazzCash Callback: Payment completed for order {$order->id}. Amount: {$payment->amount}");
+            Log::info("JazzCash Callback: Payment updated successfully for order ID: {$order->id}");
             return response()->json(['status' => 'success']);
         } else {
             $payment->update(['status' => 'failed']);
-            Log::warning("JazzCash Callback: Payment failed for order {$payment->order_id} with response code: {$responseCode}");
-            return response()->json(['status' => 'failed']);
+            Log::warning("JazzCash Callback: Flagged failing transactional processing status sequence value: {$responseCode}");
+            
+            // Standard JSON response to cleanly terminate loop cycles
+            return response()->json(['status' => 'failed', 'code' => $responseCode]);
         }
     }
 }
