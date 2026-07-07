@@ -7,9 +7,13 @@ use Illuminate\Support\Facades\Log;
 
 class JazzCashService
 {
+    // Hardcoded sandbox credentials (for testing only)
+    private const MERCHANT_ID    = 'MC829737';
+    private const PASSWORD       = 'dtt1z38yuy';
+    private const INTEGRITY_SALT = '2ss4g2u62u';
+
     /**
-     * Build payload for HTTP POST Page Redirect method (v1.1)
-     * This follows JazzCash's documented HTTP POST method for MWALLET
+     * Build payload for HTTP POST Page Redirect method (v1.1).
      */
     public function buildRedirectPayload(
         float $amount,
@@ -18,79 +22,63 @@ class JazzCashService
         User $manufacturer,
         string $cnic
     ): array {
-        // Amount in paisas (multiply by 100 and cast to string)
         $amountInPaisas = (string) round($amount * 100);
-        $txnDateTime = now()->format('YmdHis');
-        $expiryDateTime = now()->addHour()->format('YmdHis'); // Expiry reduced to 1 hour for secure checkout
+        $txnDateTime    = now()->format('YmdHis');
+        $expiryDateTime = now()->addHour()->format('YmdHis');
 
-        // Complete base payload including MWALLET credentials
         $payload = [
-            'pp_Version'            => '1.1',
-            'pp_TxnType'            => 'MWALLET',
-            'pp_Language'           => 'EN',
-            'pp_MerchantID'        => $manufacturer->jazzcash_merchant_id,
-            'pp_Password'          => $manufacturer->jazzcash_password,
-            'pp_TxnRefNo'          => $txnRefNo,
             'pp_Amount'            => $amountInPaisas,
+            // Ensure BillReference is <= 20 chars and different from TxnRefNo
+            'pp_BillReference'     => 'B' . substr($txnRefNo, 1), 
+            'pp_Description'       => 'Platform facilitated order payment',
+            'pp_Language'          => 'EN',
+            'pp_MerchantID'        => self::MERCHANT_ID,
+            'pp_Password'          => self::PASSWORD,
+            'pp_ReturnURL'         => config('jazzcash.return_url'),
+            'pp_SubMerchantID'     => '',
             'pp_TxnCurrency'       => 'PKR',
             'pp_TxnDateTime'       => $txnDateTime,
             'pp_TxnExpiryDateTime' => $expiryDateTime,
-            'pp_BillReference'     => substr($txnRefNo, 0, 20),
-            'pp_Description'       => 'Platform facilitated order payment',
-            'pp_ReturnURL'         => config('jazzcash.return_url'),
-            
-            // Mobile Wallet parameters are required to be included in the dynamic hash
-            'pp_MobileNumber'      => $shopOwnerMobile,
-            'pp_CNIC'              => $cnic,
+            'pp_TxnRefNo'          => $txnRefNo,
+            'pp_TxnType'           => '',
+            'pp_Version'           => '1.1',
+            'ppmpf_1'              => '',
+            'ppmpf_2'              => '',
+            'ppmpf_3'              => '',
+            'ppmpf_4'              => '',
+            'ppmpf_5'              => '',
         ];
 
-        // Generate dynamic secure hash across all active inputs 
-        $payload['pp_SecureHash'] = $this->generateSecureHash(
-            $payload,
-            $manufacturer->jazzcash_integrity_salt
-        );
+        $payload['pp_SecureHash'] = $this->generateSecureHash($payload, self::INTEGRITY_SALT);
 
-        // Append remaining empty gateway properties AFTER hash generation
-        $payload['pp_BankID'] = '';
-        $payload['pp_ProductID'] = '';
-        $payload['ppmpf_1'] = '';
-        $payload['ppmpf_2'] = '';
-        $payload['ppmpf_3'] = '';
-        $payload['ppmpf_4'] = '';
-        $payload['ppmpf_5'] = '';
-
-        Log::debug('JazzCash Redirect Payload Built (v1.1)', $payload);
+        Log::debug('JazzCash Redirect Payload Built', $payload);
 
         return $payload;
     }
 
     /**
-     * Generate secure hash for JazzCash v1.1 HTTP POST (Page Redirect)
+     * Generate HMAC-SHA256 secure hash matching the JazzCash Hash Calculator exactly.
      */
     public function generateSecureHash(array $payload, string $salt): string
     {
-        // 1. Remove the secure hash parameter if it's already in the array
         unset($payload['pp_SecureHash']);
 
-        // 2. Exclude any keys that have a value of null or an empty string ""
-        $filtered = array_filter($payload, function ($value) {
-            return $value !== null && $value !== '';
-        });
+        ksort($payload);
 
-        // 3. Sort all remaining payload keys alphabetically (A-Z)
-        ksort($filtered);
+        $finalString = $salt . '&';
 
-        // 4. Build string chain: Start with the Integrity Salt, followed by an ampersand, then join values
-        $hashString = $salt . '&' . implode('&', $filtered);
+        foreach ($payload as $value) {
+            $value = (string) $value;
+            $finalString .= $value;
+            if ($value !== '') {
+                $finalString .= '&';
+            }
+        }
 
-        Log::debug('Generated JazzCash String Chain (Dynamic Flow)', [
-            'string' => $hashString,
-            'filtered_keys' => array_keys($filtered)
-        ]);
+        $finalString = rtrim($finalString, '&');
 
-        // 5. Generate the HMAC SHA-256 signature using the salt as the secret key
-        return strtoupper(
-            hash_hmac('sha256', $hashString, $salt)
-        );
+        Log::debug('JazzCash Hash String', ['string' => $finalString]);
+
+        return strtoupper(hash_hmac('sha256', $finalString, $salt));
     }
 }

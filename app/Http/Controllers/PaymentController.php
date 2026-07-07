@@ -24,34 +24,28 @@ class PaymentController extends Controller
      */
     public function showPaymentForm(Order $order)
     {
-        // Authorize the logged-in user is the order's shop owner
         if ($order->shop_owner_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Block access if the manufacturer hasn't configured their full JazzCash merchant credentials
         if (!$order->manufacturer || !$order->manufacturer->hasJazzCash()) {
             return redirect()->route('shop.orders.show', $order->id)
                 ->with('error', 'This manufacturer has not yet configured their JazzCash merchant credentials. Please contact them to complete setup before making a payment.');
         }
 
         $balanceDue = $order->total_amount - $order->paid_amount;
-
         return view('shop-owner.orders.pay', compact('order', 'balanceDue'));
     }
 
     /**
      * Initiate payment - HTTP POST Page Redirect Method
-     * Redirects user to JazzCash gateway instead of calling API
      */
     public function initiatePayment(Request $request, Order $order)
     {
-        // Authorize the logged-in user is the order's shop owner
         if ($order->shop_owner_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Guard: manufacturer must have all three merchant credentials configured
         if (!$order->manufacturer || !$order->manufacturer->hasJazzCash()) {
             return redirect()->route('shop.orders.show', $order->id)
                 ->with('error', 'Payment cannot be initiated: the manufacturer has not configured their JazzCash merchant credentials.');
@@ -59,20 +53,15 @@ class PaymentController extends Controller
 
         $balanceDue = $order->total_amount - $order->paid_amount;
 
-        // Validate amount, shop owner mobile number, and last 6 digits of CNIC
+        // Temporarily removed max validation so you can test larger amounts (e.g. 100 PKR)
         $request->validate([
-            'amount'            => ['required', 'numeric', 'min:1', 'max:' . $balanceDue],
+            'amount'            => ['required', 'numeric', 'min:1'],
             'shop_owner_mobile' => ['required', 'regex:/^03[0-9]{9}$/'],
             'cnic'              => ['required', 'regex:/^[0-9]{6}$/'],
-        ], [
-            'shop_owner_mobile.regex' => 'Mobile number must be a valid Pakistani number starting with 03 (e.g. 03001234567).',
-            'cnic.regex'               => 'Please provide the last 6 digits of your CNIC.',
         ]);
 
-        // Generate a unique txn_ref_no
         $txnRefNo = 'T' . date('ymdHis') . $order->id . strtoupper(Str::random(3));
 
-        // Create a Payment record with status=pending
         $payment = Payment::create([
             'order_id'   => $order->id,
             'payer_id'   => Auth::id(),
@@ -82,7 +71,6 @@ class PaymentController extends Controller
             'status'     => 'pending',
         ]);
 
-        // Build JazzCash redirect form payload
         $payload = $this->jazzCashService->buildRedirectPayload(
             $request->amount,
             $txnRefNo,
@@ -93,7 +81,6 @@ class PaymentController extends Controller
 
         Log::info('JazzCash redirect payload built for txn: ' . $txnRefNo);
 
-        // Return HTML form that auto-submits to JazzCash
         return view('shop-owner.orders.jazzcash-redirect', compact('payload'));
     }
 
@@ -116,73 +103,73 @@ class PaymentController extends Controller
     }
 
     /**
-     * Callback handler (public webhook, no auth).
+     * Callback handler (Browser redirect from JazzCash).
      */
     public function callback(Request $request)
     {
-        Log::info('JazzCash Callback payload received: ', $request->all());
+        Log::info('JazzCash Browser Return payload received: ', $request->all());
 
-        // Extract clean incoming fields excluding framework parameters
         $incomingData = $request->except(['/']);
         $txnRefNo = $request->input('pp_TxnRefNo');
 
-        // Look up the Payment by txn_ref_no
         $payment = Payment::where('txn_ref_no', $txnRefNo)->first();
 
         if (!$payment) {
-            Log::error('JazzCash Callback: Payment record not found for reference: ' . $txnRefNo);
-            return response()->json(['error' => 'Payment record not found'], 404);
+            Log::error('JazzCash Return: Payment record not found for reference: ' . $txnRefNo);
+            return redirect()->route('shop.orders.index')->with('error', 'Payment record not found.');
         }
 
-        // Load payee manufacturer profiles
+        $order = $payment->order;
         $manufacturer = $payment->payee;
+        
         if (!$manufacturer) {
-            Log::error('JazzCash Callback: Manufacturer profile missing for payment ID: ' . $payment->id);
-            return response()->json(['error' => 'Manufacturer profile missing'], 404);
+            return redirect()->route('shop.orders.show', $order->id)->with('error', 'Manufacturer profile missing.');
         }
 
-        $salt = $manufacturer->jazzcash_integrity_salt;
-        if (empty($salt)) {
-            Log::error('JazzCash Callback: Salt string missing for manufacturer target reference ID: ' . $manufacturer->id);
-            return response()->json(['error' => 'Integrity salt missing'], 400);
-        }
+        $salt = '2ss4g2u62u';
 
-        // Regenerate and verify inbound secure hash matching
         $regeneratedHash = $this->jazzCashService->generateSecureHash($incomingData, $salt);
         $receivedHash = $request->input('pp_SecureHash');
 
         if (strtoupper($regeneratedHash) !== strtoupper($receivedHash)) {
-            Log::error("JazzCash Callback: Secure signature validation mismatch. Expected: {$regeneratedHash}, Received: {$receivedHash}");
-            return response()->json(['error' => 'Inbound secure hash signature validation mismatch'], 400);
+            Log::error("JazzCash Return: Secure signature validation mismatch.");
+            return redirect()->route('shop.orders.show', $order->id)->with('error', 'Payment signature verification failed.');
         }
 
-        // Identify response status elements (Handling intentional gateway typo field 'pp_RetreivalReferenceNo')
         $responseCode = $request->input('pp_ResponseCode');
-        $payment->update([
-            'pp_txn_id'           => $request->input('pp_TxnRefNo'),
-            'pp_response_code'    => $responseCode,
-            'pp_response_message' => $request->input('pp_ResponseMessage'),
-            'pp_retrieval_ref_no' => $request->input('pp_RetreivalReferenceNo') ?? $request->input('pp_RetrievalReferenceNo'),
-        ]);
-
-        if ($responseCode === '000') {
+        $responseMessage = $request->input('pp_ResponseMessage');
+        
+        if (!in_array($payment->status, ['failed', 'completed']) || $responseCode === '000') {
             $payment->update([
-                'status'  => 'completed',
-                'paid_at' => now(),
+                'pp_txn_id'           => $request->input('pp_TxnRefNo'),
+                'pp_response_code'    => $responseCode,
+                'pp_response_message' => $responseMessage,
+                'pp_retrieval_ref_no' => $request->input('pp_RetreivalReferenceNo') ?? $request->input('pp_RetrievalReferenceNo'),
             ]);
 
-            // Safely increment order tracking levels
-            $order = $payment->order;
-            $order->increment('paid_amount', $payment->amount);
+            if ($responseCode === '000') {
+                $payment->update([
+                    'status'  => 'completed',
+                    'paid_at' => now(),
+                ]);
 
-            Log::info("JazzCash Callback: Payment updated successfully for order ID: {$order->id}");
-            return response()->json(['status' => 'success']);
-        } else {
-            $payment->update(['status' => 'failed']);
-            Log::warning("JazzCash Callback: Flagged failing transactional processing status sequence value: {$responseCode}");
-            
-            // Standard JSON response to cleanly terminate loop cycles
-            return response()->json(['status' => 'failed', 'code' => $responseCode]);
+                $order->increment('paid_amount', $payment->amount);
+                Log::info("JazzCash Return: Payment successful for order ID: {$order->id}");
+                
+                return redirect()->route('shop.orders.show', $order->id)->with('success', 'Payment was successful!');
+            } else {
+                $payment->update(['status' => 'failed']);
+                Log::warning("JazzCash Return: Payment failed with code {$responseCode}");
+                
+                return redirect()->route('shop.orders.show', $order->id)->with('error', "Payment Failed: " . $responseMessage);
+            }
         }
+        
+        // If already processed
+        if ($payment->status === 'completed') {
+             return redirect()->route('shop.orders.show', $order->id)->with('success', 'Payment was already successful!');
+        }
+
+        return redirect()->route('shop.orders.show', $order->id)->with('error', "Payment Failed: " . $responseMessage);
     }
 }
