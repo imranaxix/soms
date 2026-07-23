@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ShopOwnerController extends Controller
@@ -68,6 +72,20 @@ class ShopOwnerController extends Controller
         return view('shop-owner.profile.index', compact('user'));
     }
 
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'business_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+        ]);
+
+        $user->update($request->only('business_name', 'name'));
+
+        return back()->with('success', 'Profile updated successfully.');
+    }
+
     public function createOrder()
     {
         $user = auth()->user();
@@ -88,12 +106,40 @@ class ShopOwnerController extends Controller
             'product_id' => 'required|exists:products,id',
             'variant_id' => 'required|exists:product_variants,id',
             'quantity' => 'required|integer|min:1',
-            'unit' => 'required|string',
+            'unit' => 'required|string|in:pieces,meters,kilograms',
             'due_date' => 'required|date|after:today',
             'total_amount' => 'required|numeric|min:0',
             'payment_terms' => 'required|string',
             'special_instructions' => 'nullable|string',
         ]);
+
+        // Ensure the shop owner has an accepted connection with the manufacturer
+        $isConnected = auth()->user()->manufacturerConnections()
+            ->where('manufacturer_id', $request->manufacturer_id)
+            ->where('status', 'accepted')
+            ->exists();
+
+        if (!$isConnected) {
+            return back()->withErrors(['manufacturer_id' => 'You are not connected with this manufacturer.'])->withInput();
+        }
+
+        // Ensure the product belongs to the manufacturer
+        $product = Product::where('id', $request->product_id)
+            ->where('user_id', $request->manufacturer_id)
+            ->first();
+
+        if (!$product) {
+            return back()->withErrors(['product_id' => 'This product does not belong to the selected manufacturer.'])->withInput();
+        }
+
+        // Ensure the variant belongs to the product
+        $variant = ProductVariant::where('id', $request->variant_id)
+            ->where('product_id', $request->product_id)
+            ->first();
+
+        if (!$variant) {
+            return back()->withErrors(['variant_id' => 'This variant does not belong to the selected product.'])->withInput();
+        }
 
         $order = Order::create([
             'order_number' => '#' . strtoupper(Str::random(8)),
@@ -156,12 +202,9 @@ class ShopOwnerController extends Controller
 
     public function showOrder($id)
     {
-        $order = Order::with(['manufacturer', 'product', 'variant', 'stages'])->findOrFail($id);
-
-        // Ensure the order belongs to the authenticated shop owner
-        if ($order->shop_owner_id !== auth()->id()) {
-            abort(403);
-        }
+        $order = Order::where('shop_owner_id', auth()->id())
+            ->with(['manufacturer', 'product', 'variant', 'stages'])
+            ->findOrFail($id);
 
         return view('shop-owner.orders.show', compact('order'));
     }
@@ -252,30 +295,82 @@ class ShopOwnerController extends Controller
 
     public function reports()
     {
+        $userId = auth()->id();
+
+        $allOrders = Order::where('shop_owner_id', $userId)->get();
+
+        $totalSpend = $allOrders->sum('total_amount');
+        $totalPaid = $allOrders->sum('paid_amount');
+        $pendingLiabilities = $totalSpend - $totalPaid;
+        $ordersFulfilled = $allOrders->where('status', 'Completed')->count();
+
+        $topManufacturer = $allOrders->groupBy('manufacturer_id')
+            ->map(fn($orders) => $orders->count())
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        $topManufacturerName = $topManufacturer
+            ? (\App\Models\User::find($topManufacturer)->business_name ?? \App\Models\User::find($topManufacturer)->name ?? '—')
+            : '—';
+
         $stats = [
-            'totalSpend' => 30000,
-            'pendingLiabilities' => 170000,
-            'ordersFulfilled' => 18,
-            'topManufacturer' => 'Textile Masters'
+            'totalSpend' => $totalSpend,
+            'pendingLiabilities' => $pendingLiabilities,
+            'ordersFulfilled' => $ordersFulfilled,
+            'topManufacturer' => $topManufacturerName,
+        ];
+
+        // Spending trends — last 6 months
+        $months = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $months->push(now()->subMonths($i));
+        }
+
+        $spendingLabels = $months->map(fn($m) => $m->format('M Y'))->toArray();
+        $spendingData = $months->map(function ($m) use ($userId) {
+            return (int) Order::where('shop_owner_id', $userId)
+                ->whereYear('created_at', $m->year)
+                ->whereMonth('created_at', $m->month)
+                ->sum('total_amount');
+        })->toArray();
+
+        // Order status distribution
+        $statusCounts = $allOrders->groupBy('status')->map->count();
+        $distributionLabels = ['Pending', 'In Progress', 'Completed', 'Rejected'];
+        $distributionData = [
+            $statusCounts->get('Pending', 0),
+            $statusCounts->get('In Progress', 0),
+            $statusCounts->get('Completed', 0),
+            $statusCounts->get('Rejected', 0),
         ];
 
         $chartData = [
             'spending' => [
-                'labels' => ['Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026'],
-                'data' => [0, 0, 0, 0, 0, 200000], 
+                'labels' => $spendingLabels,
+                'data' => $spendingData,
             ],
             'distribution' => [
-                'labels' => ['Pending', 'In Progress', 'Completed', 'Rejected'],
-                'data' => [15, 25, 50, 10], 
-            ]
+                'labels' => $distributionLabels,
+                'data' => $distributionData,
+            ],
         ];
 
-        $transactions = [
-            ['id' => 'TRX-0921A', 'date' => 'Mar 18, 2026', 'manufacturer' => 'Textile Masters', 'method' => 'Bank Transfer', 'status' => 'Paid', 'amount' => 4500],
-            ['id' => 'TRX-0915B', 'date' => 'Mar 15, 2026', 'manufacturer' => 'Global Garments', 'method' => 'JazzCash', 'status' => 'Pending', 'amount' => 2100],
-            ['id' => 'TRX-0884C', 'date' => 'Mar 12, 2026', 'manufacturer' => 'Quick Stitch Co.', 'method' => 'PayPal', 'status' => 'Overdue', 'amount' => 8000],
-            ['id' => 'TRX-0870D', 'date' => 'Mar 10, 2026', 'manufacturer' => 'Textile Masters', 'method' => 'Bank Transfer', 'status' => 'Paid', 'amount' => 3200],
-        ];
+        // Recent transactions from completed payments
+        $transactions = Payment::where('payer_id', $userId)
+            ->where('status', 'completed')
+            ->with('order.manufacturer')
+            ->latest('paid_at')
+            ->limit(10)
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->txn_ref_no,
+                'date' => $p->paid_at?->format('M d, Y') ?? $p->created_at->format('M d, Y'),
+                'manufacturer' => $p->order->manufacturer->business_name ?? $p->order->manufacturer->name ?? '—',
+                'method' => $p->stripe_payment_intent_id ? 'Stripe' : 'JazzCash',
+                'status' => 'Paid',
+                'amount' => $p->amount,
+            ]);
 
         return view('shop-owner.reports.index', compact('stats', 'chartData', 'transactions'));
     }

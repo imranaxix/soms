@@ -62,7 +62,9 @@ class OrderStatusChanged extends Notification
             'message' => $message,
             'details' => $details,
             'order_id' => $this->order->id,
-            'url' => route('shop.orders.show', $this->order->id),
+            'url' => $notifiable->role === 'manufacturer'
+                ? route('manufacturer.orders.show', $this->order->id, false)
+                : route('shop.orders.show', $this->order->id, false),
         ];
     }
 }

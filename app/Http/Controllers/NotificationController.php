@@ -13,7 +13,11 @@ class NotificationController extends Controller
         
         $url = $notification->data['url'] ?? '/';
         
-        // Safety check to ensure we don't redirect to external domains unless intended
+        // Prevent open redirects — only allow relative URLs on this host
+        if (!str_starts_with($url, '/') || str_starts_with($url, '//')) {
+            $url = '/';
+        }
+        
         return redirect($url);
     }
 

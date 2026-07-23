@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'jazzcash/callback',
+            'shop-owner/orders/*/pay/stripe/confirm',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

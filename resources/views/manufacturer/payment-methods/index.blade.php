@@ -250,6 +250,70 @@
         </div>
     </div>
 
+    {{-- Stripe Connect Card --}}
+    <div class="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+        {{-- Card Header --}}
+        <div class="px-6 py-5 border-b border-neutral-100 bg-neutral-50/60 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                     style="background: linear-gradient(135deg, #635bff 0%, #00d4ff 100%);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <line x1="12" y1="17" x2="12" y2="17"/>
+                        <path d="M12 11h.01"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-neutral-900 text-sm">Credit & Debit Cards (Stripe)</h3>
+                    <p class="text-xs text-neutral-400 mt-0.5">Receive card payments globally from Shop Owners directly into your bank account.</p>
+                </div>
+            </div>
+            @if($user->hasStripe())
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span>
+                    Connected
+                </span>
+            @else
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-neutral-100 text-neutral-500 font-bold text-xs rounded-full">
+                    Disconnected
+                </span>
+            @endif
+        </div>
+
+        <div class="p-6 space-y-6">
+            @if($user->hasStripe())
+                <div class="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-neutral-800">Linked Stripe Account</p>
+                        <p class="text-xs text-neutral-500 mt-0.5">Account ID: <code class="bg-neutral-200/60 px-2 py-0.5 rounded text-[11px] font-mono">{{ $user->stripe_connect_id }}</code></p>
+                    </div>
+                    <form action="{{ route('manufacturer.stripe.disconnect') }}" method="POST"
+                          onsubmit="return confirm('Remove your Stripe integration? Shop owners will no longer be able to pay you using credit or debit cards.');">
+                        @csrf
+                        <button type="submit"
+                                class="px-5 py-2.5 text-red-500 hover:text-red-600 font-bold text-sm rounded-xl hover:bg-red-50 transition-colors border border-transparent hover:border-red-200">
+                            Disconnect Account
+                        </button>
+                    </form>
+                </div>
+            @else
+                <div class="text-center py-6 max-w-md mx-auto space-y-4">
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-black text-neutral-800">Set Up Online Card Payments</h4>
+                        <p class="text-xs text-neutral-400 mt-1">Configure your Stripe merchant account in minutes to start accepting Visa, Mastercard, and other cards from Shop Owners.</p>
+                    </div>
+                    <a href="{{ route('manufacturer.stripe.connect') }}"
+                       class="inline-block px-7 py-3 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white font-black rounded-xl transition shadow-lg shadow-indigo-200 text-sm">
+                        Connect with Stripe
+                    </a>
+                </div>
+            @endif
+        </div>
+    </div>
+
     {{-- Other Methods Placeholder --}}
     <div class="bg-white rounded-2xl border border-dashed border-neutral-200 p-6 flex items-center gap-5 opacity-60">
         <div class="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 shrink-0">

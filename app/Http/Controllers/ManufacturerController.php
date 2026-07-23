@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ManufacturerController extends Controller
@@ -12,19 +15,18 @@ class ManufacturerController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        
-        $allOrders = \App\Models\Order::where('manufacturer_id', $user->id)->get();
+        $baseQuery = \App\Models\Order::where('manufacturer_id', $user->id);
         
         $stats = [
-            'totalOrders'    => $allOrders->count(),
-            'pendingApproval'=> $allOrders->where('status', 'Pending')->count(),
-            'inProduction'   => $allOrders->where('status', 'In Progress')->count(),
-            'delivered'      => $allOrders->where('status', 'Delivered')->count(),
-            'completed'      => $allOrders->where('status', 'Completed')->count(),
-            'cancelled'      => $allOrders->where('status', 'Cancelled')->count(),
-            'totalRevenue'   => $allOrders->whereIn('status', ['In Progress', 'Delivered', 'Completed'])->sum('total_amount'),
-            'receivedPayment'=> $allOrders->sum('paid_amount'),
-            'pendingPayment' => $allOrders->whereIn('status', ['In Progress', 'Delivered', 'Completed'])->sum('total_amount') - $allOrders->sum('paid_amount'),
+            'totalOrders'    => $baseQuery->clone()->count(),
+            'pendingApproval'=> $baseQuery->clone()->where('status', 'Pending')->count(),
+            'inProduction'   => $baseQuery->clone()->where('status', 'In Progress')->count(),
+            'delivered'      => $baseQuery->clone()->where('status', 'Delivered')->count(),
+            'completed'      => $baseQuery->clone()->where('status', 'Completed')->count(),
+            'cancelled'      => $baseQuery->clone()->where('status', 'Cancelled')->count(),
+            'totalRevenue'   => (int) $baseQuery->clone()->whereIn('status', ['In Progress', 'Delivered', 'Completed'])->sum('total_amount'),
+            'receivedPayment'=> (int) $baseQuery->clone()->sum('paid_amount'),
+            'pendingPayment' => (int) $baseQuery->clone()->whereIn('status', ['In Progress', 'Delivered', 'Completed'])->sum('total_amount') - (int) $baseQuery->clone()->sum('paid_amount'),
         ];
 
         $pendingOrders = \App\Models\Order::where('manufacturer_id', $user->id)
@@ -80,22 +82,24 @@ class ManufacturerController extends Controller
             ->with('product.stages')
             ->findOrFail($id);
 
-        $order->update([
-            'status' => 'In Progress',
-            'progress_percent' => 0,
-        ]);
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'In Progress',
+                'progress_percent' => 0,
+            ]);
 
-        // Copy product stages to order stages
-        if ($order->product && $order->product->stages->isNotEmpty()) {
-            foreach ($order->product->stages as $productStage) {
-                $order->stages()->create([
-                    'name'        => $productStage->name,
-                    'description' => $productStage->description,
-                    'sort_order'  => $productStage->sort_order,
-                    'status'      => 'pending',
-                ]);
+            // Copy product stages to order stages
+            if ($order->product && $order->product->stages->isNotEmpty()) {
+                foreach ($order->product->stages as $productStage) {
+                    $order->stages()->create([
+                        'name'        => $productStage->name,
+                        'description' => $productStage->description,
+                        'sort_order'  => $productStage->sort_order,
+                        'status'      => 'pending',
+                    ]);
+                }
             }
-        }
+        });
 
         // Notify the shop owner that their order was accepted
         $order->shopOwner->notify(new \App\Notifications\OrderStatusChanged($order, Auth::user(), 'In Progress'));
@@ -139,6 +143,9 @@ class ManufacturerController extends Controller
         $completed = $order->stages->where('status', 'completed')->count();
         $progress  = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
 
+        // Re-fetch order to get current status (may have changed since initial load)
+        $order->refresh();
+
         // Auto-deliver the order when all stages are done
         if ($progress === 100) {
             $order->update(['status' => 'Delivered', 'progress_percent' => 100]);
@@ -179,6 +186,7 @@ class ManufacturerController extends Controller
         $order = \App\Models\Order::where('manufacturer_id', Auth::id())
             ->whereIn('status', ['In Progress', 'Delivered'])
             ->with('shopOwner')
+            ->withCount(['payments' => fn($q) => $q->where('status', 'completed')])
             ->findOrFail($id);
 
         $order->update([
@@ -192,7 +200,12 @@ class ManufacturerController extends Controller
         // Notify the shop owner
         $order->shopOwner->notify(new \App\Notifications\OrderStatusChanged($order, Auth::user(), 'Cancelled'));
 
-        return back()->with('success', 'Order ' . $order->order_number . ' has been cancelled.');
+        $message = 'Order ' . $order->order_number . ' has been cancelled.';
+        if ($order->payments_count > 0) {
+            $message .= ' Note: This order has existing payments that will need to be refunded separately.';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function catalog()
@@ -447,30 +460,83 @@ class ManufacturerController extends Controller
 
     public function reports()
     {
+        $userId = auth()->id();
+
+        $allOrders = Order::where('manufacturer_id', $userId)->get();
+
+        $totalRevenue = $allOrders->whereIn('status', ['In Progress', 'Delivered', 'Completed'])->sum('total_amount');
+        $totalPaid = $allOrders->sum('paid_amount');
+        $pendingReceivables = $totalRevenue - $totalPaid;
+        $ordersFulfilled = $allOrders->where('status', 'Completed')->count();
+
+        $topCustomer = $allOrders->groupBy('shop_owner_id')
+            ->map(fn($orders) => $orders->count())
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        $topCustomerName = $topCustomer
+            ? (\App\Models\User::find($topCustomer)->business_name ?? \App\Models\User::find($topCustomer)->name ?? '—')
+            : '—';
+
         $stats = [
-            'totalRevenue' => 200000,
-            'pendingReceivables' => 170000,
-            'ordersFulfilled' => 0,
-            'topCustomer' => 'ABC Textiles'
+            'totalRevenue' => $totalRevenue,
+            'pendingReceivables' => $pendingReceivables,
+            'ordersFulfilled' => $ordersFulfilled,
+            'topCustomer' => $topCustomerName,
+        ];
+
+        // Revenue trends — last 6 months
+        $months = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $months->push(now()->subMonths($i));
+        }
+
+        $revenueLabels = $months->map(fn($m) => $m->format('M Y'))->toArray();
+        $revenueData = $months->map(function ($m) use ($userId) {
+            return (int) Order::where('manufacturer_id', $userId)
+                ->whereIn('status', ['In Progress', 'Delivered', 'Completed'])
+                ->whereYear('created_at', $m->year)
+                ->whereMonth('created_at', $m->month)
+                ->sum('total_amount');
+        })->toArray();
+
+        // Order status distribution
+        $statusCounts = $allOrders->groupBy('status')->map->count();
+        $distributionLabels = ['Pending', 'In Progress', 'Completed', 'Rejected'];
+        $distributionData = [
+            $statusCounts->get('Pending', 0),
+            $statusCounts->get('In Progress', 0),
+            $statusCounts->get('Completed', 0),
+            $statusCounts->get('Rejected', 0),
         ];
 
         $chartData = [
             'revenue' => [
-                'labels' => ['Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026'],
-                'data' => [0, 0, 0, 0, 0, 180000],
+                'labels' => $revenueLabels,
+                'data' => $revenueData,
             ],
             'distribution' => [
-                'labels' => ['Pending', 'In Progress', 'Completed', 'Rejected'],
-                'data' => [15, 25, 50, 10], 
-            ]
+                'labels' => $distributionLabels,
+                'data' => $distributionData,
+            ],
         ];
 
-        $transactions = [
-            ['id' => 'PEND-1221', 'date' => '24 Apr 2026', 'partner' => 'ABC Textiles', 'method' => '--', 'status' => 'Pending', 'amount' => 70000],
-            ['id' => 'PEND-0759', 'date' => '24 Apr 2026', 'partner' => 'ABC Textiles', 'method' => '--', 'status' => 'Pending', 'amount' => 50000],
-            ['id' => 'PEND-5130', 'date' => '11 Apr 2026', 'partner' => 'ABC Textiles', 'method' => '--', 'status' => 'Pending', 'amount' => 50000],
-            ['id' => 'TRX-69655', 'date' => '24 Mar 2026', 'partner' => 'ABC Textiles', 'method' => 'jazzcash', 'status' => 'Paid', 'amount' => 30000],
-        ];
+        // Recent transactions from completed payments received
+        $transactions = Payment::where('payee_id', $userId)
+            ->where('status', 'completed')
+            ->with('order.shopOwner')
+            ->latest('paid_at')
+            ->limit(10)
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->txn_ref_no,
+                'date' => $p->paid_at?->format('M d, Y') ?? $p->created_at->format('M d, Y'),
+                'partner' => $p->order->shopOwner->business_name ?? $p->order->shopOwner->name ?? '—',
+                'method' => $p->stripe_payment_intent_id ? 'Stripe' : 'JazzCash',
+                'status' => 'Paid',
+                'amount' => $p->amount,
+            ]);
 
         return view('manufacturer.reports.index', compact('stats', 'chartData', 'transactions'));
     }
@@ -478,6 +544,20 @@ class ManufacturerController extends Controller
     {
         $user = auth()->user();
         return view('manufacturer.profile.index', compact('user'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'business_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+        ]);
+
+        $user->update($request->only('business_name', 'name'));
+
+        return back()->with('success', 'Profile updated successfully.');
     }
 
     public function paymentMethods()
@@ -515,9 +595,12 @@ class ManufacturerController extends Controller
     public function removeJazzCash()
     {
         auth()->user()->update([
-            'jazzcash_mobile'        => null,
-            'jazzcash_account_title' => null,
-            'jazzcash_verified'      => false,
+            'jazzcash_mobile'         => null,
+            'jazzcash_account_title'  => null,
+            'jazzcash_verified'       => false,
+            'jazzcash_merchant_id'    => null,
+            'jazzcash_password'       => null,
+            'jazzcash_integrity_salt' => null,
         ]);
 
         return back()->with('success', 'JazzCash account removed.');

@@ -28,7 +28,7 @@ class ConnectionRequestReceived extends Notification
             'message' => 'New Connection Request',
             'details' => $this->sender->business_name . ' wants to connect.',
             'sender_id' => $this->sender->id,
-            'url' => route($notifiable->role === 'manufacturer' ? 'manufacturer.connections.index' : 'shop.connections')
+            'url' => route($notifiable->role === 'manufacturer' ? 'manufacturer.connections.index' : 'shop.connections', [], false)
         ];
     }
 }

@@ -357,12 +357,12 @@
                         @if($order->manufacturer->hasJazzCash())
                             <div class="pt-4">
                                 <a href="{{ route('shop.orders.pay', $order->id) }}" class="block w-full py-3 bg-gradient-to-r from-[#e8001a] to-[#ff6600] text-white rounded-xl font-black text-center text-sm transition hover:opacity-90 shadow-md shadow-orange-100">
-                                    Pay Now with JazzCash
+                                    Pay Now
                                 </a>
                             </div>
                         @else
                             <div class="pt-4 p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-center text-xs text-neutral-500">
-                                Manufacturer has not set up direct JazzCash details yet.
+                                Manufacturer has not set up any payment method yet.
                             </div>
                         @endif
                     @endif

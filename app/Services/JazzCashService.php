@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Log;
 class JazzCashService
 {
     // Hardcoded sandbox credentials (for testing only)
-    private const MERCHANT_ID    = 'MC829737';
-    private const PASSWORD       = 'dtt1z38yuy';
-    private const INTEGRITY_SALT = '2ss4g2u62u';
+    private const MERCHANT_ID    = 'MC838138';
+    private const PASSWORD       = 'a62159yb5y';
+    private const INTEGRITY_SALT = '951zt9xe85';
 
     /**
      * Build payload for HTTP POST Page Redirect method (v1.1).

@@ -27,6 +27,8 @@ class User extends Authenticatable
         'jazzcash_merchant_id',
         'jazzcash_password',
         'jazzcash_integrity_salt',
+        'stripe_connect_id',
+        'stripe_onboarding_completed',
     ];
 
     /**
@@ -42,6 +44,7 @@ class User extends Authenticatable
             'jazzcash_verified'  => 'boolean',
             'jazzcash_password'       => 'encrypted',
             'jazzcash_integrity_salt' => 'encrypted',
+            'stripe_onboarding_completed' => 'boolean',
         ];
     }
 
@@ -86,5 +89,11 @@ class User extends Authenticatable
         return !empty($this->jazzcash_mobile) && 
                !empty($this->jazzcash_merchant_id) && 
                !empty($this->jazzcash_integrity_salt);
+    }
+
+    /** Whether this manufacturer has Stripe configured */
+    public function hasStripe(): bool
+    {
+        return !empty($this->stripe_connect_id) && $this->stripe_onboarding_completed;
     }
 }

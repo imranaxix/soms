@@ -51,16 +51,19 @@
             </div>
         </div>
         <div class="p-8">
-            <form action="#" method="POST" class="space-y-8">
-                <!-- Demo purposes, no real action yet -->
+            <form action="{{ route('manufacturer.profile.update') }}" method="POST" class="space-y-8">
+                @csrf
+                @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     <div class="space-y-2">
                         <label class="text-[11px] font-bold text-neutral-400 uppercase tracking-widest ml-1">Business Name</label>
-                        <input type="text" class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-neutral-300" value="{{ $user->business_name ?? 'My Factory' }}">
+                        <input type="text" name="business_name" class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-neutral-300" value="{{ old('business_name', $user->business_name) }}">
+                        @error('business_name')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="space-y-2">
                         <label class="text-[11px] font-bold text-neutral-400 uppercase tracking-widest ml-1">Contact Person</label>
-                        <input type="text" class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-neutral-300" value="{{ $user->name }}">
+                        <input type="text" name="name" class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-neutral-300" value="{{ old('name', $user->name) }}">
+                        @error('name')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="space-y-2">
                         <label class="text-[11px] font-bold text-neutral-400 uppercase tracking-widest ml-1">Email Address</label>
@@ -77,8 +80,8 @@
                 </div>
 
                 <div class="pt-8 border-t border-dashed border-neutral-200 flex justify-end gap-4">
-                    <button type="button" class="px-8 py-3.5 text-neutral-500 font-bold rounded-xl hover:bg-neutral-50 transition-colors text-sm">Discard Changes</button>
-                    <button type="button" class="px-10 py-3.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all text-sm transform hover:-translate-y-0.5">Save Profile</button>
+                    <a href="{{ route('manufacturer.profile') }}" class="px-8 py-3.5 text-neutral-500 font-bold rounded-xl hover:bg-neutral-50 transition-colors text-sm">Discard Changes</a>
+                    <button type="submit" class="px-10 py-3.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all text-sm transform hover:-translate-y-0.5">Save Profile</button>
                 </div>
             </form>
         </div>

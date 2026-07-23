@@ -13,6 +13,7 @@ class Payment extends Model
         'payee_id',
         'amount',
         'txn_ref_no',
+        'stripe_payment_intent_id',
         'pp_txn_id',
         'pp_response_code',
         'pp_response_message',

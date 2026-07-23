@@ -95,6 +95,11 @@ class ConnectionController extends Controller
     {
         $connection = \App\Models\Connection::findOrFail($id);
         
+        // Ensure the current user is part of this connection
+        if ($connection->shop_owner_id !== auth()->id() && $connection->manufacturer_id !== auth()->id()) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
         // Ensure the current user is the recipient of the request
         if ($connection->initiated_by === auth()->id()) {
             return back()->with('error', 'You cannot accept your own request.');
@@ -112,6 +117,11 @@ class ConnectionController extends Controller
     {
         $connection = \App\Models\Connection::findOrFail($id);
         
+        // Ensure the current user is part of this connection
+        if ($connection->shop_owner_id !== auth()->id() && $connection->manufacturer_id !== auth()->id()) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
         if ($connection->initiated_by === auth()->id()) {
             return back()->with('error', 'You cannot reject your own request.');
         }

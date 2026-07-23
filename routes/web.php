@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\StripeConnectController;
 
 // Simple redirect to the login
 Route::get('/', function () {
@@ -15,9 +16,9 @@ Route::get('/', function () {
 
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
@@ -35,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'role:shop_owner'])->group(function () {
     Route::get('/shop/dashboard', [ShopOwnerController::class, 'dashboard'])->name('shop.dashboard');
     Route::get('/shop/profile', [ShopOwnerController::class, 'profile'])->name('shop.profile');
+    Route::put('/shop/profile', [ShopOwnerController::class, 'updateProfile'])->name('shop.profile.update');
     
     // Shop Order Routes
     Route::get('/shop/orders', [ShopOwnerController::class, 'orders'])->name('shop.orders.index');
@@ -54,6 +56,8 @@ Route::middleware(['auth', 'role:shop_owner'])->group(function () {
     // Payment Checkout Routes
     Route::get('/shop-owner/orders/{order}/pay', [PaymentController::class, 'showPaymentForm'])->name('shop.orders.pay');
     Route::post('/shop-owner/orders/{order}/pay', [PaymentController::class, 'initiatePayment'])->name('shop.orders.pay.initiate');
+    Route::post('/shop-owner/orders/{order}/pay/stripe/initiate', [PaymentController::class, 'initiateStripePayment'])->name('shop.orders.pay.stripe.initiate');
+    Route::post('/shop-owner/orders/{order}/pay/stripe/confirm', [PaymentController::class, 'confirmStripePayment'])->name('shop.orders.pay.stripe.confirm');
     Route::get('/shop/orders/{order}/payment-status', [PaymentController::class, 'getPaymentStatus'])->name('shop.orders.payment-status');
 });
 
@@ -64,6 +68,13 @@ Route::post('/jazzcash/callback', [PaymentController::class, 'callback'])->name(
 Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('manufacturer.')->group(function () {
     Route::get('/dashboard', [ManufacturerController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [ManufacturerController::class, 'profile'])->name('profile');
+    Route::put('/profile', [ManufacturerController::class, 'updateProfile'])->name('profile.update');
+    
+    // Stripe onboarding routes
+    Route::get('/stripe/connect', [StripeConnectController::class, 'connect'])->name('stripe.connect');
+    Route::get('/stripe/callback', [StripeConnectController::class, 'callback'])->name('stripe.callback');
+    Route::post('/stripe/disconnect', [StripeConnectController::class, 'disconnect'])->name('stripe.disconnect');
+
     Route::get('/payment-methods', [ManufacturerController::class, 'paymentMethods'])->name('payment-methods');
     Route::post('/payment-methods/jazzcash', [ManufacturerController::class, 'saveJazzCash'])->name('payment-methods.jazzcash.save');
     Route::delete('/payment-methods/jazzcash', [ManufacturerController::class, 'removeJazzCash'])->name('payment-methods.jazzcash.remove');

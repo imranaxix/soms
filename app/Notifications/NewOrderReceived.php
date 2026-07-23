@@ -33,7 +33,7 @@ class NewOrderReceived extends Notification
                 . ' placed order ' . $this->order->order_number
                 . ' — Rs ' . number_format($this->order->total_amount),
             'order_id' => $this->order->id,
-            'url' => route('manufacturer.orders.show', $this->order->id),
+            'url' => route('manufacturer.orders.show', $this->order->id, false),
         ];
     }
 }
