@@ -7,7 +7,7 @@
 
 @section('header_actions')
     <div class="flex items-center gap-3">
-        <button class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg text-sm font-bold hover:bg-neutral-50 transition shadow-sm">
+        <button onclick="exportPDF()" id="export-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg text-sm font-bold hover:bg-neutral-50 transition shadow-sm">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4 16V17C4 18.1046 4.89543 19 6 19H18C19.1046 19 20 18.1046 20 17V16M16 12L12 16M12 16L8 12M12 16V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
@@ -20,7 +20,7 @@
 @endsection
 
 @section('content')
-<div class="max-w-7xl  mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-fade-in">
+<div id="report-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-fade-in">
     
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -138,10 +138,33 @@
     </div>
 </div>
 
+<!-- html2pdf CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+function exportPDF() {
+    const btn = document.getElementById('export-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Generating...';
+    btn.disabled = true;
+
+    const element = document.getElementById('report-content');
+    const opt = {
+        margin:       0.25,
+        filename:     'Shop_Owner_Report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Spending Trends Chart
     const ctxSpending = document.getElementById('spendingChart').getContext('2d');

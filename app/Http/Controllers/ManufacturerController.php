@@ -536,7 +536,7 @@ class ManufacturerController extends Controller
                 'method' => $p->stripe_payment_intent_id ? 'Stripe' : 'JazzCash',
                 'status' => 'Paid',
                 'amount' => $p->amount,
-            ]);
+            ])->toArray();
 
         return view('manufacturer.reports.index', compact('stats', 'chartData', 'transactions'));
     }

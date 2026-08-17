@@ -370,7 +370,7 @@ class ShopOwnerController extends Controller
                 'method' => $p->stripe_payment_intent_id ? 'Stripe' : 'JazzCash',
                 'status' => 'Paid',
                 'amount' => $p->amount,
-            ]);
+            ])->toArray();
 
         return view('shop-owner.reports.index', compact('stats', 'chartData', 'transactions'));
     }

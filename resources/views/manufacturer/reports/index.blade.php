@@ -5,7 +5,7 @@
 @section('page_subtitle', 'Detailed financial and order insights')
 
 @section('header_actions')
-    <button class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors shadow-sm uppercase tracking-wider">
+    <button onclick="exportPDF()" id="export-btn" class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors shadow-sm uppercase tracking-wider">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M21 15V19C21 19.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -14,7 +14,7 @@
 @endsection
 
 @section('content')
-<div class="space-y-8">
+<div id="report-content" class="space-y-8">
     <!-- Analytics KPI Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-6">
@@ -61,49 +61,18 @@
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Revenue Trends -->
-        <div class="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm space-y-8">
-            <h2 class="text-lg font-bold text-neutral-900 border-b border-neutral-50 pb-4">Revenue Trends</h2>
-            <div class="h-64 flex items-end gap-4 px-4 border-b border-l border-neutral-100 pb-2 relative">
-                @foreach($chartData['revenue']['labels'] as $index => $label)
-                <div class="flex-1 flex flex-col items-center gap-2 group">
-                    <div class="w-full bg-success-500/50 group-hover:bg-success-500 transition-colors rounded-t-sm" 
-                         style="height: {{ $chartData['revenue']['data'][$index] / 2000 }}%"></div>
-                    <span class="text-[9px] text-neutral-400 whitespace-nowrap">{{ $label }}</span>
-                </div>
-                @endforeach
-                
-                <div class="absolute bottom-[-40px] left-1/2 transform -translate-x-1/2 flex items-center gap-2">
-                    <div class="w-3 h-3 bg-success-500 rounded-full"></div>
-                    <span class="text-xs font-bold text-neutral-600">Total Revenue</span>
-                </div>
+        <div class="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm">
+            <h3 class="text-lg font-bold text-neutral-900 mb-8 border-b border-neutral-50 pb-4">Revenue Trends</h3>
+            <div class="h-[300px] w-full">
+                <canvas id="revenueChart"></canvas>
             </div>
         </div>
 
         <!-- Order Status Distribution -->
-        <div class="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm space-y-8">
-            <h2 class="text-lg font-bold text-neutral-900 border-b border-neutral-50 pb-4">Order Status Distribution</h2>
-            <div class="h-64 flex flex-col items-center justify-center relative">
-                <div class="w-48 h-48 rounded-full border-[20px] border-neutral-100 flex items-center justify-center relative">
-                    <div class="absolute inset-0 rounded-full border-[20px] border-transparent border-t-orange-500 border-r-orange-500 rotate-[-45deg]"></div>
-                    <div class="absolute inset-0 rounded-full border-[20px] border-transparent border-l-primary-500 border-b-primary-500 rotate-[30deg]"></div>
-                </div>
-                
-                <div class="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-3">
-                    @php
-                        $segments = [
-                            ['label' => 'Pending', 'color' => 'bg-orange-500'],
-                            ['label' => 'In Progress', 'color' => 'bg-primary-500'],
-                            ['label' => 'Completed', 'color' => 'bg-success-500'],
-                            ['label' => 'Rejected', 'color' => 'bg-error-500'],
-                        ];
-                    @endphp
-                    @foreach($segments as $s)
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 {{ $s['color'] }} rounded-full"></div>
-                        <span class="text-[11px] text-neutral-600 font-bold uppercase tracking-widest">{{ $s['label'] }}</span>
-                    </div>
-                    @endforeach
-                </div>
+        <div class="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm">
+            <h3 class="text-lg font-bold text-neutral-900 mb-8 border-b border-neutral-50 pb-4">Order Status Distribution</h3>
+            <div class="h-[300px] w-full flex items-center justify-center">
+                <canvas id="distributionChart"></canvas>
             </div>
         </div>
     </div>
@@ -152,4 +121,116 @@
         </div>
     </div>
 </div>
+
+<!-- html2pdf CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+function exportPDF() {
+    const btn = document.getElementById('export-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Generating...';
+    btn.disabled = true;
+
+    const element = document.getElementById('report-content');
+    const opt = {
+        margin:       0.25,
+        filename:     'Manufacturer_Report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Revenue Trends Chart
+    const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctxRevenue, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($chartData['revenue']['labels']) !!},
+            datasets: [{
+                label: 'Total Revenue',
+                data: {!! json_encode($chartData['revenue']['data']) !!},
+                backgroundColor: '#22c55e', // Green color
+                borderRadius: 4,
+                barThickness: 40,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: { size: 12, weight: 'bold' }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f3f4f6', drawBorder: false },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(value) { return value.toLocaleString(); }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10 } }
+                }
+            }
+        }
+    });
+
+    // Order Distribution Chart
+    const ctxDist = document.getElementById('distributionChart').getContext('2d');
+    new Chart(ctxDist, {
+        type: 'doughnut',
+        data: {
+            labels: {!! json_encode($chartData['distribution']['labels']) !!},
+            datasets: [{
+                data: {!! json_encode($chartData['distribution']['data']) !!},
+                backgroundColor: [
+                    '#f97316', // Pending (Orange)
+                    '#0ea5e9', // In Progress (Sky Blue)
+                    '#22c55e', // Completed/Delivered (Green)
+                    '#ef4444'  // Rejected/Cancelled (Red)
+                ],
+                borderWidth: 0,
+                weight: 0.5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: { size: 12, weight: 'bold' }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
 @endsection
