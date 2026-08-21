@@ -52,8 +52,8 @@ class StripeConnectController extends Controller
         try {
             $accountLink = AccountLink::create([
                 'account' => $user->stripe_connect_id,
-                'refresh_url' => route('manufacturer.stripe.connect'),
-                'return_url' => route('manufacturer.stripe.callback'),
+                'refresh_url' => route('manufacturer.payment-methods', ['stripe_status' => 'refresh']),
+                'return_url' => route('manufacturer.payment-methods', ['stripe_status' => 'success']),
                 'type' => 'account_onboarding',
             ]);
 

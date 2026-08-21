@@ -36,8 +36,17 @@ return [
     ],
 
     'stripe' => [
-        'key' => env('STRIPE_KEY'),
-        'secret' => env('STRIPE_SECRET'),
+        'key'            => env('STRIPE_KEY'),
+        'secret'         => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'safepay' => [
+        'enabled'       => (bool) env('SAFEPAY_ENABLED', false),
+        'environment'   => env('SAFEPAY_ENVIRONMENT', 'sandbox'),
+        'public_key'    => env('SAFEPAY_PUBLIC_KEY'),
+        'secret_key'    => env('SAFEPAY_SECRET_KEY'),
+        'webhook_secret' => env('SAFEPAY_WEBHOOK_SECRET'),
     ],
 
 ];

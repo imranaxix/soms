@@ -5,7 +5,7 @@
 @section('page_subtitle', 'Detailed financial and order insights')
 
 @section('header_actions')
-    <button onclick="exportPDF()" id="export-btn" class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors shadow-sm uppercase tracking-wider">
+    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors shadow-sm uppercase tracking-wider">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M21 15V19C21 19.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -14,73 +14,95 @@
 @endsection
 
 @section('content')
-<div id="report-content" class="space-y-8">
+<div class="space-y-8">
     <!-- Analytics KPI Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-6">
-            <div class="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-xl flex items-center justify-center">
-                <div class="w-5 h-5 bg-blue-600 rounded-sm"></div>
+        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-5">
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div>
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Total Revenue</p>
-                <h3 class="text-xl font-bold text-neutral-900">Rs {{ number_format($stats['totalRevenue']) }}</h3>
+                <h3 class="text-xl font-black text-neutral-900">Rs {{ number_format($stats['totalRevenue']) }}</h3>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-6">
-            <div class="w-12 h-12 bg-orange-600/10 text-orange-600 rounded-xl flex items-center justify-center">
-                <div class="w-5 h-5 border-2 border-orange-600 rounded-full"></div>
+        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-5">
+            <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
             <div>
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Pending Receivables</p>
-                <h3 class="text-xl font-bold text-neutral-900">Rs {{ number_format($stats['pendingReceivables']) }}</h3>
+                <h3 class="text-xl font-black text-neutral-900">Rs {{ number_format($stats['pendingReceivables']) }}</h3>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-6">
-            <div class="w-12 h-12 bg-green-600/10 text-green-600 rounded-xl flex items-center justify-center">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-5">
+            <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center shrink-0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><path d="M20 6L9 17L4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div>
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Orders Fulfilled</p>
-                <h3 class="text-xl font-bold text-neutral-900">{{ $stats['ordersFulfilled'] }}</h3>
+                <h3 class="text-xl font-black text-neutral-900">{{ $stats['ordersFulfilled'] }}</h3>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-6 text-teal-600">
-            <div class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center text-[10px] font-bold">A</div>
-            <div>
+        <div class="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-5">
+            <div class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center text-lg font-black shrink-0">
+                {{ strtoupper(substr($stats['topCustomer'], 0, 1)) }}
+            </div>
+            <div class="min-w-0">
                 <p class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-1">Top Customer</p>
-                <h3 class="text-xl font-bold text-neutral-900">{{ $stats['topCustomer'] }}</h3>
+                <h3 class="text-lg font-black text-neutral-900 truncate">{{ $stats['topCustomer'] }}</h3>
             </div>
         </div>
     </div>
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Revenue Trends -->
+        <!-- Revenue Trends (real Chart.js bar chart) -->
         <div class="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm">
-            <h3 class="text-lg font-bold text-neutral-900 mb-8 border-b border-neutral-50 pb-4">Revenue Trends</h3>
-            <div class="h-[300px] w-full">
+            <h2 class="text-base font-black text-neutral-900 mb-6">Revenue Trends <span class="text-xs font-medium text-neutral-400 ml-1">(last 6 months)</span></h2>
+            <div class="relative h-64">
                 <canvas id="revenueChart"></canvas>
             </div>
         </div>
 
-        <!-- Order Status Distribution -->
+        <!-- Order Status Distribution (real Chart.js doughnut chart) -->
         <div class="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm">
-            <h3 class="text-lg font-bold text-neutral-900 mb-8 border-b border-neutral-50 pb-4">Order Status Distribution</h3>
-            <div class="h-[300px] w-full flex items-center justify-center">
-                <canvas id="distributionChart"></canvas>
+            <h2 class="text-base font-black text-neutral-900 mb-6">Order Status Distribution</h2>
+            <div class="flex items-center gap-8 h-64">
+                <div class="relative flex-1 flex items-center justify-center h-full">
+                    <canvas id="donutChart"></canvas>
+                </div>
+                <div class="flex flex-col gap-3 shrink-0">
+                    @php
+                        $segments = [
+                            ['label' => 'Pending',     'color' => 'bg-orange-400',  'value' => $chartData['distribution']['data'][0]],
+                            ['label' => 'In Progress', 'color' => 'bg-blue-500',    'value' => $chartData['distribution']['data'][1]],
+                            ['label' => 'Completed',   'color' => 'bg-green-500',   'value' => $chartData['distribution']['data'][2]],
+                            ['label' => 'Rejected',    'color' => 'bg-red-500',     'value' => $chartData['distribution']['data'][3]],
+                        ];
+                    @endphp
+                    @foreach($segments as $s)
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-3 h-3 {{ $s['color'] }} rounded-full shrink-0"></div>
+                        <div>
+                            <span class="text-[11px] text-neutral-700 font-bold uppercase tracking-wider">{{ $s['label'] }}</span>
+                            <span class="text-[11px] text-neutral-400 font-bold ml-1.5">{{ $s['value'] }}</span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Recent Transactions -->
-    <div class="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden mt-12">
-        <div class="p-8 border-b border-neutral-50 bg-neutral-50/20 text-neutral-400 font-bold text-[13px] uppercase tracking-widest">
-            Recent Transactions
+    <div class="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-neutral-50 flex items-center justify-between">
+            <h2 class="text-sm font-black text-neutral-700 uppercase tracking-widest">Recent Transactions</h2>
+            <span class="text-xs font-bold text-neutral-400">Last 10 payments received</span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -94,143 +116,120 @@
                         <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-right">Amount</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-neutral-100 italic">
-                    @foreach($transactions as $trx)
+                <tbody class="divide-y divide-neutral-100">
+                    @forelse($transactions as $trx)
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-6 py-5 text-sm font-bold text-neutral-800">{{ $trx['id'] }}</td>
-                        <td class="px-6 py-5 text-sm font-medium text-neutral-500">{{ $trx['date'] }}</td>
-                        <td class="px-6 py-5 text-sm font-bold text-neutral-800">{{ $trx['partner'] }}</td>
-                        <td class="px-6 py-5 text-xs text-neutral-400 font-bold">{{ $trx['method'] }}</td>
-                        <td class="px-6 py-5 text-center">
-                            @php
-                                $statusClasses = [
-                                    'Pending' => 'bg-orange-100 text-orange-700',
-                                    'Paid' => 'bg-green-100 text-green-700'
-                                ];
-                                $class = $statusClasses[$trx['status']] ?? 'bg-neutral-100 text-neutral-600';
-                            @endphp
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold {{ $class }} uppercase tracking-tighter">
+                        <td class="px-6 py-4 text-sm font-bold text-neutral-800 font-mono">{{ $trx['id'] }}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-neutral-500">{{ $trx['date'] }}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-neutral-800">{{ $trx['partner'] }}</td>
+                        <td class="px-6 py-4 text-xs text-neutral-500 font-bold">{{ $trx['method'] }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase tracking-tighter">
                                 {{ $trx['status'] }}
                             </span>
                         </td>
-                        <td class="px-6 py-5 text-right font-bold text-neutral-900">Rs {{ number_format($trx['amount']) }}</td>
+                        <td class="px-6 py-4 text-right font-black text-neutral-900">Rs {{ number_format($trx['amount']) }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-neutral-400 font-bold text-sm">No transactions yet.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- html2pdf CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<!-- Chart.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-function exportPDF() {
-    const btn = document.getElementById('export-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = 'Generating...';
-    btn.disabled = true;
+(function () {
+    // ── Revenue Bar Chart ──────────────────────────────────────
+    const revenueLabels = @json($chartData['revenue']['labels']);
+    const revenueData   = @json($chartData['revenue']['data']);
 
-    const element = document.getElementById('report-content');
-    const opt = {
-        margin:       0.25,
-        filename:     'Manufacturer_Report.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
-    };
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
 
-    html2pdf().set(opt).from(element).save().then(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-}
+    const gradient = revenueCtx.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, 'rgba(37,99,235,0.85)');
+    gradient.addColorStop(1, 'rgba(99,102,241,0.4)');
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Revenue Trends Chart
-    const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
-    new Chart(ctxRevenue, {
+    new Chart(revenueCtx, {
         type: 'bar',
         data: {
-            labels: {!! json_encode($chartData['revenue']['labels']) !!},
+            labels: revenueLabels,
             datasets: [{
-                label: 'Total Revenue',
-                data: {!! json_encode($chartData['revenue']['data']) !!},
-                backgroundColor: '#22c55e', // Green color
-                borderRadius: 4,
-                barThickness: 40,
+                label: 'Revenue (Rs)',
+                data: revenueData,
+                backgroundColor: gradient,
+                borderRadius: 8,
+                borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        padding: 20,
-                        font: { size: 12, weight: 'bold' }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ' Rs ' + ctx.parsed.y.toLocaleString()
                     }
                 }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#f3f4f6', drawBorder: false },
-                    ticks: {
-                        font: { size: 10 },
-                        callback: function(value) { return value.toLocaleString(); }
-                    }
-                },
                 x: {
                     grid: { display: false },
-                    ticks: { font: { size: 10 } }
+                    ticks: { font: { size: 11, weight: 'bold' }, color: '#9ca3af' }
+                },
+                y: {
+                    beginAtZero: true,
+                    border: { dash: [4,4] },
+                    grid: { color: '#f3f4f6' },
+                    ticks: {
+                        font: { size: 11, weight: 'bold' },
+                        color: '#9ca3af',
+                        callback: v => 'Rs ' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
+                    }
                 }
             }
         }
     });
 
-    // Order Distribution Chart
-    const ctxDist = document.getElementById('distributionChart').getContext('2d');
-    new Chart(ctxDist, {
+    // ── Donut Chart ───────────────────────────────────────────
+    const donutCtx = document.getElementById('donutChart').getContext('2d');
+    const donutData = @json($chartData['distribution']['data']);
+    const donutLabels = @json($chartData['distribution']['labels']);
+    const total = donutData.reduce((a, b) => a + b, 0);
+
+    new Chart(donutCtx, {
         type: 'doughnut',
         data: {
-            labels: {!! json_encode($chartData['distribution']['labels']) !!},
+            labels: donutLabels,
             datasets: [{
-                data: {!! json_encode($chartData['distribution']['data']) !!},
-                backgroundColor: [
-                    '#f97316', // Pending (Orange)
-                    '#0ea5e9', // In Progress (Sky Blue)
-                    '#22c55e', // Completed/Delivered (Green)
-                    '#ef4444'  // Rejected/Cancelled (Red)
-                ],
+                data: total > 0 ? donutData : [1],
+                backgroundColor: total > 0
+                    ? ['#fb923c', '#3b82f6', '#22c55e', '#ef4444']
+                    : ['#e5e7eb'],
                 borderWidth: 0,
-                weight: 0.5
+                hoverOffset: 6,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '70%',
+            cutout: '68%',
             plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        padding: 20,
-                        font: { size: 12, weight: 'bold' }
+                legend: { display: false },
+                tooltip: {
+                    enabled: total > 0,
+                    callbacks: {
+                        label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + ' orders'
                     }
                 }
             }
         }
     });
-});
+})();
 </script>
-
 @endsection

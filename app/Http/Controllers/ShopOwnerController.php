@@ -269,7 +269,7 @@ class ShopOwnerController extends Controller
                 'order_id'         => $order->id,
                 'manufacturer'     => $order->manufacturer->business_name ?? $order->manufacturer->name,
                 'txn_ref_no'       => $p->txn_ref_no,
-                'pp_response_code' => $p->pp_response_code,
+                'gateway_response_code' => $p->gateway_response_code,
                 'amount'           => $p->amount,
                 'status'           => $p->status,
             ]);
@@ -277,14 +277,15 @@ class ShopOwnerController extends Controller
 
         // Per-order balance rows
         $orderBalances = $orders->map(fn($order) => [
-            'order_number' => $order->order_number,
-            'order_id'     => $order->id,
-            'product'      => $order->product->name ?? '—',
-            'manufacturer' => $order->manufacturer->business_name ?? $order->manufacturer->name,
-            'total'        => $order->total_amount,
-            'paid'         => $order->paid_amount,
-            'balance'      => $order->total_amount - $order->paid_amount,
-            'status'       => $order->status,
+            'order_number'  => $order->order_number,
+            'order_id'      => $order->id,
+            'product'       => $order->product->name ?? '—',
+            'manufacturer'  => $order->manufacturer->business_name ?? $order->manufacturer->name,
+            'payment_terms' => str_replace('_', ' ', $order->payment_terms),
+            'total'         => $order->total_amount,
+            'paid'          => $order->paid_amount,
+            'balance'       => $order->total_amount - $order->paid_amount,
+            'status'        => $order->status,
         ])->values();
 
         return view('shop-owner.payments.index', compact(
@@ -367,7 +368,7 @@ class ShopOwnerController extends Controller
                 'id' => $p->txn_ref_no,
                 'date' => $p->paid_at?->format('M d, Y') ?? $p->created_at->format('M d, Y'),
                 'manufacturer' => $p->order->manufacturer->business_name ?? $p->order->manufacturer->name ?? '—',
-                'method' => $p->stripe_payment_intent_id ? 'Stripe' : 'JazzCash',
+                'method' => $p->stripe_payment_intent_id ? 'Stripe' : ($p->safepay_tracker_id ? 'Safepay' : '—'),
                 'status' => 'Paid',
                 'amount' => $p->amount,
             ])->toArray();

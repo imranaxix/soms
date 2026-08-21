@@ -17,7 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
-            'jazzcash/callback',
+            'safepay/webhook',
+            'stripe/webhook',
             'shop-owner/orders/*/pay/stripe/confirm',
         ]);
     })

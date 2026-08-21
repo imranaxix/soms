@@ -8,6 +8,7 @@ use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StripeConnectController;
+use App\Http\Controllers\ChatController;
 
 // Simple redirect to the login
 Route::get('/', function () {
@@ -21,6 +22,41 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+
+// Route::get('test-direct-payment', function () {
+
+//     $safepay = new \Safepay\SafepayClient([
+//         'api_key' => 'sec_ed9ccaca-5ff2-413a-892c-fb6a33ef1c74',
+//         'api_base' => 'https://sandbox.api.getsafepay.com' // for live payments use https://api.getsafepay.com
+// ]);
+
+// try {
+//   $session = $safepay->order->setup([
+//     "merchant_api_key" => "sec_ed9ccaca-5ff2-413a-892c-fb6a33ef1c74",
+//     "intent" => "CYBERSOURCE",
+//     "mode" => "payment",
+//     "entry_mode" => "raw",
+//     "currency" => "USD",
+//     "amount" => 10000,
+//     "metadata" => [
+//       "order_id" => "1234567890"
+//     ],
+//     "include_fees" => false
+//   ]);
+
+//   dd($session);
+
+// } catch(\UnexpectedValueException $e) {
+//     // Invalid payload
+//     http_response_code(400);
+//     die('Invalid payload');
+//     exit();
+// }
+
+
+
+// });
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/connections/search', [ConnectionController::class, 'search'])->name('connections.search');
     Route::post('/connections/request', [ConnectionController::class, 'store'])->name('connections.store');
@@ -28,8 +64,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/connections/{id}/reject', [ConnectionController::class, 'reject'])->name('connections.reject');
     Route::delete('/connections/{id}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
     Route::get('/user/{id}', [ConnectionController::class, 'showProfile'])->name('user.show');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{id}/read', [NotificationController::class, 'readAndRedirect'])->name('notifications.read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
+
+    // Chat routes (accessible to both shop_owner and manufacturer)
+    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/{connection}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chat/{connection}/send', [ChatController::class, 'send'])->name('chat.send');
+    Route::get('/chat/{connection}/poll', [ChatController::class, 'poll'])->name('chat.poll');
+    Route::post('/chat/{connection}/read', [ChatController::class, 'markRead'])->name('chat.read');
 });
 
 // Basic Shop Routes (Protected)
@@ -55,14 +99,17 @@ Route::middleware(['auth', 'role:shop_owner'])->group(function () {
 
     // Payment Checkout Routes
     Route::get('/shop-owner/orders/{order}/pay', [PaymentController::class, 'showPaymentForm'])->name('shop.orders.pay');
-    Route::post('/shop-owner/orders/{order}/pay', [PaymentController::class, 'initiatePayment'])->name('shop.orders.pay.initiate');
     Route::post('/shop-owner/orders/{order}/pay/stripe/initiate', [PaymentController::class, 'initiateStripePayment'])->name('shop.orders.pay.stripe.initiate');
     Route::post('/shop-owner/orders/{order}/pay/stripe/confirm', [PaymentController::class, 'confirmStripePayment'])->name('shop.orders.pay.stripe.confirm');
+    Route::post('/shop-owner/orders/{order}/pay/safepay/initiate', [PaymentController::class, 'initiateSafepayPayment'])->name('shop.orders.pay.safepay.initiate');
     Route::get('/shop/orders/{order}/payment-status', [PaymentController::class, 'getPaymentStatus'])->name('shop.orders.payment-status');
 });
 
-// JazzCash Webhook Callback (Public, no auth)
-Route::post('/jazzcash/callback', [PaymentController::class, 'callback'])->name('jazzcash.callback');
+// Safepay Webhook (Public, no auth)
+Route::post('/safepay/webhook', [PaymentController::class, 'safepayWebhook'])->name('safepay.webhook');
+
+// Stripe Webhook (Public, no auth)
+Route::post('/stripe/webhook', [PaymentController::class, 'stripeWebhook'])->name('stripe.webhook');
 
 // Manufacturer Routes (Protected)
 Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('manufacturer.')->group(function () {
@@ -76,8 +123,6 @@ Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('
     Route::post('/stripe/disconnect', [StripeConnectController::class, 'disconnect'])->name('stripe.disconnect');
 
     Route::get('/payment-methods', [ManufacturerController::class, 'paymentMethods'])->name('payment-methods');
-    Route::post('/payment-methods/jazzcash', [ManufacturerController::class, 'saveJazzCash'])->name('payment-methods.jazzcash.save');
-    Route::delete('/payment-methods/jazzcash', [ManufacturerController::class, 'removeJazzCash'])->name('payment-methods.jazzcash.remove');
     Route::get('/orders', [ManufacturerController::class, 'orders'])->name('orders.index');
     Route::get('/orders/{id}', [ManufacturerController::class, 'showOrder'])->name('orders.show');
     Route::post('/orders/{id}/accept', [ManufacturerController::class, 'acceptOrder'])->name('orders.accept');

@@ -28,8 +28,22 @@ class AuthController extends Controller
             $request->session()->regenerate();
             
             $user = auth()->user();
-        
+
+            // Block suspended accounts
+            if (!$user->is_active) {
+                auth()->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Your account has been suspended. Please contact support.',
+                ])->onlyInput('email');
+            }
+
             //Redirect based on the  role
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.dashboard');
+            }
             if ($user->role === 'manufacturer') {
                 return redirect()->route('manufacturer.dashboard');
             }

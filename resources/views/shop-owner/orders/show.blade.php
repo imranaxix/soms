@@ -68,12 +68,23 @@
                 </div>
             </div>
 
-            {{-- Action Banner: Processing Payment --}}
+            {{-- Action Banner: Payment Status --}}
             @php
-                $pendingPayment = $order->payments()->where('status', 'pending')->latest()->first();
+                $latestPayment = $order->payments()->latest()->first();
+                $isFullyPaid = $order->paid_amount >= $order->total_amount;
             @endphp
-            @if($pendingPayment)
-            <div class="rounded-2xl border border-orange-200 bg-orange-50 p-5 flex items-center justify-between gap-4" id="payment-pending-banner">
+            @if($isFullyPaid && $latestPayment && $latestPayment->status === 'completed')
+            <div class="rounded-2xl border border-green-200 bg-green-50 p-5 flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div>
+                    <p class="font-bold text-green-800 text-sm">Payment of Rs {{ number_format($latestPayment->amount) }} sent</p>
+                    <p class="text-xs text-green-600 mt-0.5">This order has been paid for successfully.</p>
+                </div>
+            </div>
+            @elseif($latestPayment && $latestPayment->status === 'pending')
+            <div class="rounded-2xl border border-orange-200 bg-orange-50 p-5 flex items-center gap-4" id="payment-pending-banner">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500 shrink-0">
                         <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -82,9 +93,27 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="font-bold text-orange-800 text-sm">Payment of Rs {{ number_format($pendingPayment->amount) }} is processing</p>
-                        <p class="text-xs text-orange-600 mt-0.5">Please approve the MPIN request on your JazzCash app. Polling for confirmation...</p>
+                        <p class="font-bold text-orange-800 text-sm">Payment of Rs {{ number_format($latestPayment->amount) }} is processing</p>
+                        <p class="text-xs text-orange-600 mt-0.5">
+                            @if($latestPayment->stripe_payment_intent_id)
+                                Your card payment is being confirmed by Stripe. Polling for confirmation...
+                            @elseif($latestPayment->safepay_tracker_id)
+                                Your Safepay payment is being confirmed. Polling for confirmation...
+                            @endif
+                        </p>
                     </div>
+                </div>
+            </div>
+            @endif
+
+            @if(session('payment_failed'))
+            <div class="rounded-2xl border border-red-200 bg-red-50 p-5 flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 shrink-0">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <div>
+                    <p class="font-bold text-red-700 text-sm">Payment of Rs {{ number_format(session('payment_failed')) }} failed</p>
+                    <p class="text-xs text-red-500 mt-0.5">Sorry! Your transaction was not successful. Please try again later.</p>
                 </div>
             </div>
             @endif
@@ -109,6 +138,8 @@
                 </form>
             </div>
             @endif
+
+            
 
             <!-- Action Banner: Confirm Delivery (Delivered) -->
             @if($order->status === 'Delivered')
@@ -354,9 +385,9 @@
                     </div>
 
                     @if($order->total_amount - $order->paid_amount > 0)
-                        @if($order->manufacturer->hasJazzCash())
+                        @if($order->manufacturer->hasStripe() || app('safepay')->isConfigured())
                             <div class="pt-4">
-                                <a href="{{ route('shop.orders.pay', $order->id) }}" class="block w-full py-3 bg-gradient-to-r from-[#e8001a] to-[#ff6600] text-white rounded-xl font-black text-center text-sm transition hover:opacity-90 shadow-md shadow-orange-100">
+                                <a href="{{ route('shop.orders.pay', $order->id) }}" class="block w-full py-3 bg-gradient-to-r from-indigo-600 to-sky-600 text-white rounded-xl font-black text-center text-sm transition hover:opacity-90 shadow-md shadow-indigo-100">
                                     Pay Now
                                 </a>
                             </div>
@@ -394,14 +425,18 @@
 </div>
 
 <script>
-    @if($pendingPayment)
+    @if($latestPayment && $latestPayment->status === 'pending')
+        let pollAttempts = 0;
         const checkPaymentInterval = setInterval(() => {
+            pollAttempts++;
             fetch("{{ route('shop.orders.payment-status', $order->id) }}")
                 .then(response => response.json())
                 .then(data => {
                     if (data.status && data.status !== 'pending') {
                         clearInterval(checkPaymentInterval);
                         window.location.reload();
+                    } else if (pollAttempts >= 40) {
+                        clearInterval(checkPaymentInterval);
                     }
                 })
                 .catch(err => console.error("Error polling payment status:", err));

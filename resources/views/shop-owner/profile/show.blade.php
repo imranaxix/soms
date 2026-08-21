@@ -3,18 +3,18 @@
 @section('page_title', 'Business Profile')
 @section('page_subtitle', 'View details and connect with this business.')
 @section('header_actions')
-    <a href="{{ route('shop.connections') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+    <button onclick="history.back()" class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors shadow-sm">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        Back to Connections
-    </a>
+        Back
+    </button>
 @endsection
 @section('content')
 <main class="p-6 max-w-4xl mx-auto space-y-6">
 
     <!-- Profile Header Card -->
-    <div class="bg-white rounded-3xl border border-neutral-200 overflow-hidden shadow-sm relative">
+    <div class="bg-white rounded-3xl border border-neutral-200 shadow-sm relative">
         <!-- Cover Photo / Gradient -->
         <div class="h-32 bg-gradient-to-br from-primary-600 via-primary-500 to-indigo-600"></div>
         

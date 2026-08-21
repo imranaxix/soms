@@ -21,14 +21,10 @@ class User extends Authenticatable
         'password',
         'business_name',
         'role',
-        'jazzcash_mobile',
-        'jazzcash_account_title',
-        'jazzcash_verified',
-        'jazzcash_merchant_id',
-        'jazzcash_password',
-        'jazzcash_integrity_salt',
         'stripe_connect_id',
         'stripe_onboarding_completed',
+        'is_active',
+        'is_verified',
     ];
 
     /**
@@ -41,10 +37,9 @@ class User extends Authenticatable
         return [
             'email_verified_at'  => 'datetime',
             'password'           => 'hashed',
-            'jazzcash_verified'  => 'boolean',
-            'jazzcash_password'       => 'encrypted',
-            'jazzcash_integrity_salt' => 'encrypted',
             'stripe_onboarding_completed' => 'boolean',
+            'is_active' => 'boolean',
+            'is_verified' => 'boolean',
         ];
     }
 
@@ -80,15 +75,6 @@ class User extends Authenticatable
     public function paymentsReceived()
     {
         return $this->hasMany(Payment::class, 'payee_id');
-    }
-
-    /** Whether this manufacturer has JazzCash configured */
-    public function hasJazzCash(): bool
-    {
-        // Verified active if they have provided their essential routing parameters
-        return !empty($this->jazzcash_mobile) && 
-               !empty($this->jazzcash_merchant_id) && 
-               !empty($this->jazzcash_integrity_salt);
     }
 
     /** Whether this manufacturer has Stripe configured */

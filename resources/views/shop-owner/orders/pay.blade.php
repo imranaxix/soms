@@ -3,7 +3,7 @@
 @section('title', 'Pay Order - SOMS')
 
 @section('back_link', route('shop.orders.show', $order->id))
-@section('page_title', 'Pay Order #' . $order->order_number)
+@section('page_title', 'Pay Order ' . $order->order_number)
 @section('page_subtitle', 'Secure Checkout Gateway')
 
 @section('content')
@@ -16,14 +16,14 @@
                 
                 {{-- Payment Methods Tabs --}}
                 <div class="flex border-b border-neutral-100 mb-6">
-                    @if($order->manufacturer->hasJazzCash())
-                    <button id="tab-jazzcash" onclick="switchTab('jazzcash')" class="flex-1 py-3 text-center border-b-2 border-red-500 text-sm font-black text-neutral-800 focus:outline-none transition-all">
-                        🇵🇰 JazzCash Wallet
-                    </button>
-                    @endif
                     @if($order->manufacturer->hasStripe())
                     <button id="tab-card" onclick="switchTab('card')" class="flex-1 py-3 text-center border-b-2 border-transparent text-sm font-bold text-neutral-400 hover:text-neutral-600 focus:outline-none transition-all">
                         💳 Credit / Debit Card
+                    </button>
+                    @endif
+                    @if($safepayEnabled)
+                    <button id="tab-safepay" onclick="switchTab('safepay')" class="flex-1 py-3 text-center border-b-2 border-transparent text-sm font-bold text-neutral-400 hover:text-neutral-600 focus:outline-none transition-all">
+                        <img src="{{ asset('safepay-logo.png') }}" alt="Safepay" class="inline-block w-5 h-5 rounded-full object-cover align-middle"> Safepay
                     </button>
                     @endif
                 </div>
@@ -34,90 +34,9 @@
                     </div>
                 @endif
 
-                {{-- JazzCash Form --}}
-                @if($order->manufacturer->hasJazzCash())
-                <form id="jazzcash-form" action="{{ route('shop.orders.pay.initiate', $order->id) }}" method="POST" onsubmit="showProcessingState('Connecting to JazzCash Secure Gateway...')">
-                    @csrf
-
-                    <!-- Mobile Number Input -->
-                    <div class="mb-6">
-                        <label for="shop_owner_mobile" class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                            Your JazzCash Mobile Number
-                        </label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold pointer-events-none">🇵🇰</span>
-                            <input 
-                                type="tel" 
-                                name="shop_owner_mobile" 
-                                id="shop_owner_mobile"
-                                placeholder="03001234567"
-                                maxlength="11"
-                                required
-                                class="w-full pl-12 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-neutral-300 placeholder:font-normal"
-                            >
-                        </div>
-                        <p class="text-[10px] text-neutral-400 mt-1.5 ml-1">An MPIN prompt will be sent to this mobile account to confirm the transaction.</p>
-                    </div>
-
-                    <!-- CNIC Last 6 Digits Input -->
-                    <div class="mb-6">
-                        <label for="cnic" class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                            Last 6 Digits of Your CNIC
-                        </label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-neutral-400 pointer-events-none">💳</span>
-                            <input
-                                type="text"
-                                name="cnic"
-                                id="cnic"
-                                placeholder="345678"
-                                maxlength="6"
-                                inputmode="numeric"
-                                required
-                                class="w-full pl-12 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-neutral-300 placeholder:font-normal"
-                            >
-                        </div>
-                        @error('cnic')
-                            <p class="text-[11px] text-red-600 mt-1.5 ml-1 font-medium">{{ $message }}</p>
-                        @enderror
-                        @if(!$errors->has('cnic'))
-                            <p class="text-[10px] text-neutral-400 mt-1.5 ml-1">Required by JazzCash v2.0 to authenticate your mobile wallet.</p>
-                        @endif
-                    </div>
-
-                    <!-- Payment Amount Input -->
-                    <div class="mb-8">
-                        <label class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                            Payment Amount (Rs)
-                        </label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-neutral-400 pointer-events-none">Rs</span>
-                            <input 
-                                type="number" 
-                                name="amount" 
-                                min="1"
-                                max="{{ $balanceDue }}"
-                                step="any"
-                                required
-                                value="{{ old('amount', ($order->payment_terms === '50_advance' && $order->paid_amount == 0) ? ($order->total_amount / 2) : $balanceDue) }}"
-                                class="w-full pl-10 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all jc-amount-input"
-                            >
-                        </div>
-                    </div>
-
-                    <!-- Pay Button -->
-                    <button 
-                        type="submit" 
-                        class="w-full py-4 bg-gradient-to-r from-[#e8001a] to-[#ff6600] text-white rounded-2xl font-black text-center text-sm transition-all hover:opacity-95 shadow-lg shadow-orange-100 flex items-center justify-center gap-2"
-                    >
-                        <span>Pay Securely with JazzCash</span>
-                    </button>
-                </form>
-                @endif
-
                 {{-- Stripe Card Form --}}
                 @if($order->manufacturer->hasStripe())
-                <form id="stripe-card-form" class="{{ !$order->manufacturer->hasJazzCash() ? '' : 'hidden' }}">
+                <form id="stripe-card-form" class="">
                     <div class="mb-6">
                         <label class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
                             Cardholder Name
@@ -167,6 +86,41 @@
                         class="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-2xl font-black text-center text-sm transition-all hover:opacity-95 shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
                     >
                         <span>Pay Securely with Card</span>
+                    </button>
+                </form>
+                @endif
+
+                {{-- Safepay Form --}}
+                @if($safepayEnabled)
+                <form id="safepay-form" action="{{ route('shop.orders.pay.safepay.initiate', $order->id) }}" method="POST" onsubmit="showProcessingState('Connecting to Safepay Secure Gateway...', 'safepay')" class="{{ !$order->manufacturer->hasStripe() ? '' : 'hidden' }}">
+                    @csrf
+
+                    <!-- Payment Amount Input -->
+                    <div class="mb-8">
+                        <label class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
+                            Payment Amount (Rs)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-neutral-400 pointer-events-none">Rs</span>
+                            <input 
+                                type="number" 
+                                name="amount" 
+                                min="1"
+                                max="{{ $balanceDue }}"
+                                step="any"
+                                required
+                                value="{{ old('amount', ($order->payment_terms === '50_advance' && $order->paid_amount == 0) ? ($order->total_amount / 2) : $balanceDue) }}"
+                                class="w-full pl-10 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 outline-none transition-all safepay-amount-input"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Pay Button -->
+                    <button 
+                        type="submit" 
+                        class="w-full py-4 bg-gradient-to-r from-slate-800 to-sky-600 text-white rounded-2xl font-black text-center text-sm transition-all hover:opacity-95 shadow-lg shadow-sky-100 flex items-center justify-center gap-2"
+                    >
+                        <span>Pay Securely with Safepay</span>
                     </button>
                 </form>
                 @endif
@@ -221,9 +175,6 @@
                     </div>
                     <div>
                         <h5 class="text-sm font-bold text-neutral-800">{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}</h5>
-                        @if($order->manufacturer->hasJazzCash())
-                        <p class="text-[10px] text-success-600 font-bold uppercase mt-0.5">Title: {{ $order->manufacturer->jazzcash_account_title }}</p>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -251,20 +202,60 @@
     let stripe, elements, cardElement;
     
     document.addEventListener("DOMContentLoaded", function() {
-        // Sync the two amount inputs in case they enter on one tab and switch
-        const jcInput = document.querySelector('.jc-amount-input');
-        const stripeInput = document.querySelector('.stripe-amount-input');
-        if (jcInput && stripeInput) {
-            jcInput.addEventListener('input', (e) => stripeInput.value = e.target.value);
-            stripeInput.addEventListener('input', (e) => jcInput.value = e.target.value);
-        }
+        // Sync all amount inputs in case they enter on one tab and switch
+        const amountInputs = document.querySelectorAll('.jc-amount-input, .stripe-amount-input, .safepay-amount-input');
+        amountInputs.forEach((input) => {
+            input.addEventListener('input', (e) => {
+                amountInputs.forEach((other) => {
+                    if (other !== e.target) other.value = e.target.value;
+                });
+            });
+        });
 
         // Initialize Stripe if connected
         initStripe();
+
+        // Set active tab on load — card tab takes priority when Stripe is enabled
+        switchTab('card');
     });
 
     function initStripe() {
-        // We initialize dynamically after we fetch the client secret with the publishable key
+        if (!document.getElementById('card-element')) {
+            return;
+        }
+
+        stripe = Stripe("{{ config('services.stripe.key') }}", {
+            stripeAccount: "{{ $order->manufacturer->stripe_connect_id }}"
+        });
+        elements = stripe.elements();
+
+        const style = {
+            base: {
+                color: '#1a1a1a',
+                fontFamily: '"Outfit", sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '15px',
+                '::placeholder': {
+                    color: '#d1d1d1'
+                }
+            },
+            invalid: {
+                color: '#ef4444',
+                iconColor: '#ef4444'
+            }
+        };
+
+        cardElement = elements.create('card', { style: style });
+        cardElement.mount('#card-element');
+
+        cardElement.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
     }
 
     const stripeForm = document.getElementById('stripe-card-form');
@@ -296,44 +287,7 @@
                     return;
                 }
 
-                // 2. Initialize stripe object with publishable key and Connected Account ID
-                if (!stripe) {
-                    stripe = Stripe(data.publishableKey, {
-                        stripeAccount: data.connectedAccountId
-                    });
-                    elements = stripe.elements();
-                    
-                    // Card Styling
-                    const style = {
-                        base: {
-                            color: '#1a1a1a',
-                            fontFamily: '"Outfit", sans-serif',
-                            fontSmoothing: 'antialiased',
-                            fontSize: '15px',
-                            '::placeholder': {
-                                color: '#d1d1d1'
-                            }
-                        },
-                        invalid: {
-                            color: '#ef4444',
-                            iconColor: '#ef4444'
-                        }
-                    };
-                    
-                    cardElement = elements.create('card', { style: style });
-                    cardElement.mount('#card-element');
-
-                    cardElement.on('change', function(event) {
-                        const displayError = document.getElementById('card-errors');
-                        if (event.error) {
-                            displayError.textContent = event.error.message;
-                        } else {
-                            displayError.textContent = '';
-                        }
-                    });
-                }
-
-                // Wait 500ms for Card Element to load if first time
+                // 2. Card element is already mounted on page load; confirm payment
                 showProcessingState('Securing transaction with Stripe...', 'indigo');
 
                 // 3. Confirm card payment with Stripe
@@ -384,70 +338,39 @@
 @endif
 
 <script>
-function switchTab(method) {
-    const tabJazz = document.getElementById('tab-jazzcash');
-    const tabCard = document.getElementById('tab-card');
-    const formJazz = document.getElementById('jazzcash-form');
-    const formCard = document.getElementById('stripe-card-form');
+document.addEventListener('DOMContentLoaded', function() {
+    // When only Safepay is available (no Stripe), activate safepay tab by default
+    @if(!$order->manufacturer->hasStripe() && $safepayEnabled)
+    switchTab('safepay');
+    @endif
+});
 
-    if (method === 'jazzcash') {
-        if (tabJazz) {
-            tabJazz.classList.add('border-red-500', 'text-neutral-800');
-            tabJazz.classList.remove('border-transparent', 'text-neutral-400');
+function switchTab(method) {
+    const tabs = { card: 'tab-card', safepay: 'tab-safepay' };
+    const forms = { card: 'stripe-card-form', safepay: 'safepay-form' };
+    const activeColors = {
+        card: ['border-indigo-500', 'text-neutral-800'],
+        safepay: ['border-sky-500', 'text-neutral-800']
+    };
+
+    Object.keys(tabs).forEach(key => {
+        const tab = document.getElementById(tabs[key]);
+        const form = document.getElementById(forms[key]);
+        if (tab) {
+            tab.classList.remove('border-red-500', 'border-indigo-500', 'border-sky-500', 'text-neutral-800');
+            tab.classList.add('border-transparent', 'text-neutral-400');
         }
-        if (tabCard) {
-            tabCard.classList.remove('border-indigo-500', 'text-neutral-800');
-            tabCard.classList.add('border-transparent', 'text-neutral-400');
-        }
-        if (formJazz) formJazz.classList.remove('hidden');
-        if (formCard) formCard.classList.add('hidden');
-    } else {
-        if (tabJazz) {
-            tabJazz.classList.remove('border-red-500', 'text-neutral-800');
-            tabJazz.classList.add('border-transparent', 'text-neutral-400');
-        }
-        if (tabCard) {
-            tabCard.classList.add('border-indigo-500', 'text-neutral-800');
-            tabCard.classList.remove('border-transparent', 'text-neutral-400');
-        }
-        if (formJazz) formJazz.classList.add('hidden');
-        if (formCard) formCard.classList.remove('hidden');
-        
-        // Lazy initialize the card element once tab is switched
-        if (stripe && elements && cardElement) {
-            // Already mounted
-        } else {
-            // Retrieve publishable key details on first interaction
-            fetch("{{ route('shop.orders.pay.stripe.initiate', $order->id) }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ amount: 1 }) // temporary request to get credentials
-            }).then(res => res.json()).then(data => {
-                if (data.publishableKey) {
-                    stripe = Stripe(data.publishableKey, {
-                        stripeAccount: data.connectedAccountId
-                    });
-                    elements = stripe.elements();
-                    const style = {
-                        base: {
-                            color: '#1a1a1a',
-                            fontFamily: '"Outfit", sans-serif',
-                            fontSmoothing: 'antialiased',
-                            fontSize: '15px',
-                            '::placeholder': {
-                                color: '#d1d1d1'
-                            }
-                        }
-                    };
-                    cardElement = elements.create('card', { style: style });
-                    cardElement.mount('#card-element');
-                }
-            }).catch(console.error);
-        }
+        if (form) form.classList.add('hidden');
+    });
+
+    const activeTab = document.getElementById(tabs[method]);
+    const activeForm = document.getElementById(forms[method]);
+    if (activeTab) {
+        activeTab.classList.remove('border-transparent', 'text-neutral-400');
+        activeTab.classList.add(...activeColors[method]);
     }
+    if (activeForm) activeForm.classList.remove('hidden');
+
 }
 
 function showProcessingState(text = 'Initiating Payment...', color = 'orange') {
@@ -457,6 +380,8 @@ function showProcessingState(text = 'Initiating Payment...', color = 'orange') {
     const spinner = document.getElementById('spinner-color');
     if (color === 'indigo') {
         spinner.className = "w-16 h-16 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin";
+    } else if (color === 'safepay') {
+        spinner.className = "w-16 h-16 rounded-full border-4 border-sky-100 border-t-sky-600 animate-spin";
     } else {
         spinner.className = "w-16 h-16 rounded-full border-4 border-orange-100 border-t-orange-500 animate-spin";
     }

@@ -121,6 +121,9 @@
                 </div>
                 <div class="pt-4 border-t border-neutral-100 flex gap-3">
                     <a href="{{ route('user.show', $partner->id) }}" class="flex-1 text-center py-3 bg-primary-50 text-primary-700 rounded-xl text-sm font-bold hover:bg-primary-100 transition shadow-sm border border-primary-100">View Profile</a>
+                    <a href="{{ route('chat.show', $connection->id) }}" title="Message {{ $partner->business_name ?? $partner->name }}" class="w-11 flex items-center justify-center py-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition shadow-sm border border-indigo-100">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </a>
                 </div>
             </div>
             @endforeach

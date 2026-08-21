@@ -55,7 +55,9 @@
             @include('components.header')
 
             <!-- Page Header (Page Specific Title/Actions) -->
-            @include('components.page-header')
+            @unless(View::hasSection('hide_page_header'))
+                @include('components.page-header')
+            @endunless
 
             <main class="flex-1 p-6">
                 @yield('content')

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-SOMS (Shop Order Management System) — a Laravel 13 B2B platform connecting shop owners with manufacturers. Two user roles: `shop_owner` and `manufacturer`.
+SOMS (Shop Order Management System) — a Laravel 13 B2B platform connecting shop owners with manufacturers. Three user roles: `shop_owner`, `manufacturer`, and `admin`.
 
 ## Quick Commands
 
@@ -21,7 +21,7 @@ Default is SQLite. Tests use SQLite in-memory (see `phpunit.xml`). Migrations ar
 
 ## Testing
 
-PHPUnit 12 with two suites: `Unit` (tests/Unit) and `Feature` (tests/Feature). Tests are minimal (only ExampleTest stubs). Run the full suite:
+PHPUnit 12 with two suites: `Unit` (tests/Unit) and `Feature` (tests/Feature). Tests include the `AdminPanelTest` feature suite (admin role + access control). Run the full suite:
 
 ```bash
 composer test
@@ -31,12 +31,12 @@ Tests auto-clear config cache before running.
 
 ## Architecture
 
-- **Roles**: `shop_owner` and `manufacturer` — enforced by `App\Http\Middleware\RoleMiddleware` (registered as `role` alias in `bootstrap/app.php`)
-- **Routes**: `routes/web.php` only. No API routes file. Shop routes under `/shop/*`, manufacturer routes under `/manufacturer/*`
-- **Controllers**: `ShopOwnerController`, `ManufacturerController` (fat controllers — most logic lives here), plus `PaymentController`, `StripeConnectController`, `ConnectionController`, `AuthController`, `NotificationController`
+- **Roles**: `shop_owner`, `manufacturer`, and `admin` — enforced by `App\Http\Middleware\RoleMiddleware` (registered as `role` alias in `bootstrap/app.php`)
+- **Routes**: `routes/web.php` only. No API routes file. Shop routes under `/shop/*`, manufacturer routes under `/manufacturer/*`, admin routes under `/admin/*`
+- **Controllers**: `ShopOwnerController`, `ManufacturerController` (fat controllers — most logic lives here), plus `PaymentController`, `StripeConnectController`, `ConnectionController`, `AuthController`, `NotificationController`, `AdminController`
 - **Models**: `User`, `Order`, `OrderStage`, `Payment`, `Product`, `ProductStage`, `ProductVariant`, `Connection`
 - **Services**: `App\Services\JazzCashService` (JazzCash hash generation)
-- **Views**: Blade templates in `resources/views/shop-owner/` and `resources/views/manufacturer/`, with shared layouts in `resources/views/layouts/`
+- **Views**: Blade templates in `resources/views/shop-owner/`, `resources/views/manufacturer/`, and `resources/views/admin/`, with shared layouts in `resources/views/layouts/`
 
 ## Payment Integrations
 

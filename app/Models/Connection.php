@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Connection extends Model
 {
@@ -28,5 +29,15 @@ class Connection extends Model
     public function initiator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'initiated_by');
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class)->orderBy('created_at');
+    }
+
+    public function latestMessage(): HasMany
+    {
+        return $this->hasMany(Message::class)->latest()->limit(1);
     }
 }

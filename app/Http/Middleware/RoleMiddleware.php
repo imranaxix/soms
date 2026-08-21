@@ -16,6 +16,9 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, string $role): Response
     {
         if (!$request->user() || $request->user()->role !== $role) {
+            if ($request->user() && $request->user()->role === 'admin') {
+                return redirect()->route('admin.dashboard')->with('error', 'Unauthorized access.');
+            }
             if ($request->user() && $request->user()->role === 'manufacturer') {
                 return redirect()->route('manufacturer.dashboard')->with('error', 'Unauthorized access.');
             }

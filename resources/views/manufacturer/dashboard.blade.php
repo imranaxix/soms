@@ -216,58 +216,67 @@
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Spending Trends (Mock Chart) -->
+        <!-- Spending Trends Chart -->
         <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
             <h2 class="text-lg font-bold text-neutral-900 mb-6">Spending Trends</h2>
-            <div class="h-64 flex items-end gap-4 px-4 border-b border-l border-neutral-100 pb-2 relative">
-                @php $months = ['Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026']; @endphp
-                @foreach($months as $index => $month)
-                <div class="flex-1 flex flex-col items-center gap-2 group">
-                    <div class="w-full bg-error-400/50 group-hover:bg-error-400 transition-colors rounded-t-sm" 
-                         style="height: {{ $index == 5 ? '80%' : '2%' }}"></div>
-                    <span class="text-[10px] text-neutral-400 whitespace-nowrap">{{ $month }}</span>
-                </div>
-                @endforeach
-                
-                <!-- Legend -->
-                <div class="absolute bottom-[-40px] left-1/2 transform -translate-x-1/2 flex items-center gap-2">
-                    <div class="w-3 h-3 bg-error-400 rounded-full"></div>
-                    <span class="text-xs font-bold text-neutral-600">Total Spending</span>
-                </div>
-            </div>
+            <canvas id="spendingChart"></canvas>
         </div>
 
-        <!-- Order Status Distribution (Mock Chart) -->
+        <!-- Order Status Distribution Chart -->
         <div class="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
             <h2 class="text-lg font-bold text-neutral-900 mb-6">Order Status Distribution</h2>
-            <div class="h-64 flex flex-col items-center justify-center relative">
-                <!-- Donut Chart Circle -->
-                <div class="w-48 h-48 rounded-full border-[18px] border-neutral-100 flex items-center justify-center relative">
-                    <!-- Segment Blue -->
-                    <div class="absolute inset-0 rounded-full border-[18px] border-transparent border-t-orange-500 border-r-orange-500 rotate-[-45deg]"></div>
-                    <!-- Segment Green -->
-                    <div class="absolute inset-0 rounded-full border-[18px] border-transparent border-l-primary-500 border-b-primary-500 rotate-[30deg]"></div>
-                </div>
-                
-                <!-- Legend Beside -->
-                <div class="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-3">
-                    @php
-                        $segments = [
-                            ['label' => 'Pending', 'color' => 'bg-orange-500'],
-                            ['label' => 'In Progress', 'color' => 'bg-primary-500'],
-                            ['label' => 'Completed', 'color' => 'bg-success-500'],
-                            ['label' => 'Rejected', 'color' => 'bg-error-500'],
-                        ];
-                    @endphp
-                    @foreach($segments as $s)
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 {{ $s['color'] }} rounded-full"></div>
-                        <span class="text-xs text-neutral-600 font-medium">{{ $s['label'] }}</span>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
+            <canvas id="statusDonut"></canvas>
         </div>
+
+        <script>
+            // Spending Trends Bar Chart
+            const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+            new Chart(spendingCtx, {
+                type: 'bar',
+                data: {
+                    labels: @json($revenueLabels),
+                    datasets: [{
+                        label: 'Revenue (Rs)',
+                        data: @json($revenueData),
+                        backgroundColor: 'rgba(37,99,235,0.85)',
+                        borderColor: 'rgba(37,99,235,1)',
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' Rs ' + ctx.parsed.y.toLocaleString() } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' }, color: '#9ca3af' } },
+                        y: { beginAtZero: true, border: { dash: [4,4] }, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11, weight: 'bold' }, color: '#9ca3af', callback: v => 'Rs ' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) } }
+                    }
+                }
+            });
+
+            // Order Status Distribution Doughnut Chart
+            const donutCtx = document.getElementById('statusDonut').getContext('2d');
+            new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: @json($distributionLabels),
+                    datasets: [{
+                        data: @json($distributionData),
+                        backgroundColor: @json($distributionTotal > 0 ? ['#fb923c', '#3b82f6', '#22c55e', '#ef4444'] : ['#e5e7eb']),
+                        borderWidth: 0,
+                        hoverOffset: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: { legend: { display: false }, tooltip: { enabled: @json($distributionTotal > 0), callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + ' orders' } } }
+                }
+            });
+        </script>
     </div>
 </div>
 @endsection

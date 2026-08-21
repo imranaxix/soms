@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Payment;
-use App\Services\JazzCashService;
+use App\Services\SafepayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,11 +13,11 @@ use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
-    protected $jazzCashService;
+    protected $safepayService;
 
-    public function __construct(JazzCashService $jazzCashService)
+    public function __construct(SafepayService $safepayService)
     {
-        $this->jazzCashService = $jazzCashService;
+        $this->safepayService = $safepayService;
     }
 
     /**
@@ -31,13 +31,14 @@ class PaymentController extends Controller
 
         $manufacturer = $order->manufacturer;
 
-        if (!$manufacturer || (!$manufacturer->hasJazzCash() && !$manufacturer->hasStripe())) {
+        if (!$manufacturer || (!$manufacturer->hasStripe() && !$this->safepayService->isConfigured())) {
             return redirect()->route('shop.orders.show', $order->id)
                 ->with('error', 'This manufacturer has not configured any payment methods yet. Please contact them to complete setup before making a payment.');
         }
 
         $balanceDue = $order->total_amount - $order->paid_amount;
-        return view('shop-owner.orders.pay', compact('order', 'balanceDue'));
+        $safepayEnabled = $this->safepayService->isConfigured();
+        return view('shop-owner.orders.pay', compact('order', 'balanceDue', 'safepayEnabled'));
     }
 
     /**
@@ -92,6 +93,13 @@ class PaymentController extends Controller
                 'connectedAccountId' => $manufacturer->stripe_connect_id
             ]);
         } catch (\Exception $e) {
+            Log::error('Stripe PaymentIntent creation failed', [
+                'order_id' => $order->id,
+                'manufacturer_id' => $order->manufacturer_id,
+                'stripe_account' => $manufacturer->stripe_connect_id,
+                'secret_fingerprint' => hash('sha256', (string) config('services.stripe.secret')),
+                'error' => $e->getMessage(),
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -124,17 +132,66 @@ class PaymentController extends Controller
         // Validate the payment with Stripe API
         \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
         try {
-            $paymentIntent = \Stripe\PaymentIntent::retrieve(
-                $request->payment_intent_id,
-                [],
-                ['stripe_account' => $order->manufacturer->stripe_connect_id]
-            );
+            $paymentIntentId = $request->payment_intent_id;
+            $connectedAccountId = $order->manufacturer->stripe_connect_id ?? null;
+            $paymentIntent = null;
+
+            if ($connectedAccountId) {
+                Log::info('Stripe PaymentIntent retrieve attempt on connected account', [
+                    'order_id' => $order->id,
+                    'payment_id' => $payment->id,
+                    'payment_intent_id' => $paymentIntentId,
+                    'stripe_account' => $connectedAccountId,
+                ]);
+
+                try {
+                    $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId, [
+                        'stripe_account' => $connectedAccountId,
+                    ]);
+                } catch (\Stripe\Exception\InvalidRequestException $e) {
+                    $isNotFound = $e->getHttpStatus() === 404
+                        || str_contains(strtolower($e->getMessage()), 'no such payment_intent');
+
+                    Log::warning('Connected account PaymentIntent retrieve failed', [
+                        'order_id' => $order->id,
+                        'payment_id' => $payment->id,
+                        'payment_intent_id' => $paymentIntentId,
+                        'stripe_account' => $connectedAccountId,
+                        'http_status' => $e->getHttpStatus(),
+                        'error' => $e->getMessage(),
+                        'fallback_to_platform' => $isNotFound,
+                    ]);
+
+                    if (!$isNotFound) {
+                        throw $e;
+                    }
+                }
+            }
+
+            if (!$paymentIntent) {
+                Log::info('Stripe PaymentIntent retrieve attempt on platform account', [
+                    'order_id' => $order->id,
+                    'payment_id' => $payment->id,
+                    'payment_intent_id' => $paymentIntentId,
+                ]);
+
+                $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+
+                Log::info('Stripe PaymentIntent retrieve succeeded on platform account', [
+                    'order_id' => $order->id,
+                    'payment_id' => $payment->id,
+                    'payment_intent_id' => $paymentIntentId,
+                    'status' => $paymentIntent->status,
+                ]);
+            }
 
             if ($paymentIntent->status === 'succeeded') {
                 DB::transaction(function () use ($payment, $order) {
                     $payment->update([
-                        'status' => 'completed',
-                        'paid_at' => now(),
+                        'status'              => 'completed',
+                        'paid_at'             => now(),
+                        'gateway_response_code'    => 'succeeded',
+                        'gateway_response_message' => 'Stripe PaymentIntent succeeded.',
                     ]);
 
                     $order->increment('paid_amount', $payment->amount);
@@ -144,55 +201,286 @@ class PaymentController extends Controller
             }
 
             return response()->json(['error' => 'Payment status is: ' . $paymentIntent->status], 400);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            Log::error('Stripe PaymentIntent confirmation failed', [
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'payment_intent_id' => $request->payment_intent_id,
+                'http_status' => $e->getHttpStatus(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
         } catch (\Exception $e) {
+            Log::error('Unexpected Stripe confirmation error', [
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'payment_intent_id' => $request->payment_intent_id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Initiate payment - HTTP POST Page Redirect Method
+     * Process Stripe PaymentIntent events forwarded from Stripe.
      */
-    public function initiatePayment(Request $request, Order $order)
+    public function stripeWebhook(Request $request)
+    {
+        $payload = $request->getContent();
+        $signature = $request->header('Stripe-Signature', '');
+        $webhookSecret = config('services.stripe.webhook_secret');
+
+        if (!$webhookSecret) {
+            Log::error('Stripe webhook secret is not configured.');
+            return response()->json(['error' => 'Webhook secret not configured.'], 422);
+        }
+
+        try {
+            $event = \Stripe\Webhook::constructEvent($payload, $signature, $webhookSecret);
+        } catch (\UnexpectedValueException $e) {
+            Log::warning('Stripe webhook payload is invalid.', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Invalid payload.'], 400);
+        } catch (\Stripe\Exception\SignatureVerificationException $e) {
+            Log::warning('Stripe webhook signature is invalid.', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Invalid signature.'], 400);
+        }
+
+        if (!in_array($event->type, ['payment_intent.succeeded', 'payment_intent.payment_failed'], true)) {
+            return response()->json(['received' => true]);
+        }
+
+        $intent = $event->data->object;
+        $payment = Payment::where('stripe_payment_intent_id', $intent->id)->first();
+
+        if (!$payment) {
+            Log::warning('Stripe webhook payment record not found.', [
+                'event_id' => $event->id,
+                'payment_intent_id' => $intent->id,
+            ]);
+            return response()->json(['received' => true]);
+        }
+
+        if ($event->type === 'payment_intent.succeeded') {
+            if ($payment->status !== 'completed') {
+                DB::transaction(function () use ($payment) {
+                    $payment->update([
+                        'status'              => 'completed',
+                        'paid_at'             => now(),
+                        'gateway_response_code'    => 'succeeded',
+                        'gateway_response_message' => 'Stripe PaymentIntent succeeded.',
+                    ]);
+                    $payment->order->increment('paid_amount', $payment->amount);
+                });
+            }
+        } elseif ($payment->status === 'pending') {
+            $payment->update([
+                'status'              => 'failed',
+                'gateway_response_code'    => $intent->last_payment_error->code ?? 'payment_failed',
+                'gateway_response_message' => $intent->last_payment_error->message ?? 'Stripe PaymentIntent failed.',
+            ]);
+        }
+
+        Log::info('Stripe webhook processed.', [
+            'event_id' => $event->id,
+            'type' => $event->type,
+            'payment_id' => $payment->id,
+            'payment_intent_id' => $intent->id,
+            'status' => $payment->status,
+        ]);
+
+        return response()->json(['received' => true]);
+    }
+
+    /**
+     * Initiate Safepay payment - creates a tracker and redirects to hosted checkout.
+     */
+    public function initiateSafepayPayment(Request $request, Order $order)
     {
         if ($order->shop_owner_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        if (!$order->manufacturer || !$order->manufacturer->hasJazzCash()) {
+        if (!$this->safepayService->isConfigured()) {
             return redirect()->route('shop.orders.show', $order->id)
-                ->with('error', 'Payment cannot be initiated: the manufacturer has not configured their JazzCash merchant credentials.');
+                ->with('error', 'Safepay is not configured.');
         }
 
         $balanceDue = $order->total_amount - $order->paid_amount;
 
         $request->validate([
-            'amount'            => ['required', 'numeric', 'min:1', 'max:' . $balanceDue],
-            'shop_owner_mobile' => ['required', 'regex:/^03[0-9]{9}$/'],
-            'cnic'              => ['required', 'regex:/^[0-9]{6}$/'],
+            'amount' => ['required', 'numeric', 'min:1', 'max:' . $balanceDue],
         ]);
 
-        $txnRefNo = 'T' . date('ymdHis') . $order->id . strtoupper(Str::random(3));
+        try {
+            $tracker = $this->safepayService->createTracker(
+                (float) $request->amount,
+                'PKR',
+                ['order_id' => (string) $order->id]
+            );
 
-        $payment = Payment::create([
-            'order_id'   => $order->id,
-            'payer_id'   => Auth::id(),
-            'payee_id'   => $order->manufacturer_id,
-            'amount'     => $request->amount,
-            'txn_ref_no' => $txnRefNo,
-            'status'     => 'pending',
+            $authToken = $this->safepayService->createAuthToken();
+
+            $txnRefNo = 'F' . date('ymdHis') . $order->id . strtoupper(Str::random(3));
+
+            Payment::create([
+                'order_id'           => $order->id,
+                'payer_id'           => Auth::id(),
+                'payee_id'           => $order->manufacturer_id,
+                'amount'             => $request->amount,
+                'txn_ref_no'         => $txnRefNo,
+                'safepay_tracker_id' => $tracker,
+                'status'             => 'pending',
+            ]);
+
+            Log::info('Safepay tracker created for order: ' . $order->id, [
+                'tracker'     => $tracker,
+                'order_id'    => $order->id,
+                'amount'      => $request->amount,
+                'environment' => config('services.safepay.environment'),
+            ]);
+
+            return redirect()->away(
+                $this->safepayService->buildCheckoutUrl(
+                    $tracker,
+                    $authToken,
+                    $order->id
+                )
+            );
+        } catch (\Exception $e) {
+            Log::error('Safepay initiation failed', [
+                'order_id' => $order->id,
+                'error'    => $e->getMessage(),
+            ]);
+
+            return redirect()->route('shop.orders.show', $order->id)
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Safepay webhook handler - confirms payment completion.
+     */
+    public function safepayWebhook(Request $request)
+    {
+        $payload = $request->getContent();
+        $signature = $request->header('X-SFPY-SIGNATURE', '');
+
+        $webhookSecret = config('services.safepay.webhook_secret');
+        $secretMatchesApi = $webhookSecret && $webhookSecret === config('services.safepay.secret_key');
+
+        if (!$webhookSecret) {
+            Log::error('Safepay webhook secret is missing from config.');
+            return response()->json(['error' => 'Webhook secret not configured.'], 422);
+        }
+
+        if ($secretMatchesApi) {
+            Log::error('Safepay webhook secret matches API secret; set the distinct dashboard webhook secret instead.', [
+                'secret_key_set' => !empty(config('services.safepay.secret_key')),
+                'webhook_secret_set' => !empty($webhookSecret),
+            ]);
+            return response()->json(['error' => 'Webhook secret misconfigured.'], 422);
+        }
+
+        if (!$this->safepayService->verifyWebhookSignature($payload, $signature, $webhookSecret)) {
+            Log::error('Safepay webhook signature verification failed', [
+                'has_signature' => !empty($signature),
+                'payload_length' => strlen($payload),
+                'secret_matches_api' => $secretMatchesApi,
+            ]);
+            return response()->json(['error' => 'Invalid signature.'], 403);
+        }
+
+        $decoded = json_decode($payload, true);
+        if (!is_array($decoded)) {
+            return response()->json(['error' => 'Invalid payload.'], 400);
+        }
+
+        $data = $decoded['data'] ?? $decoded;
+        $tracker = $data['tracker']
+            ?? $data['notification']['tracker']
+            ?? $data['transaction']['tracker']
+            ?? null;
+
+        if (is_array($tracker)) {
+            $tracker = $tracker['token'] ?? $tracker['id'] ?? null;
+        }
+
+        if (!$tracker) {
+            Log::warning('Safepay webhook received without a tracker', ['payload' => $payload]);
+            return response()->json(['error' => 'Tracker not found in payload.'], 400);
+        }
+
+        $payment = Payment::where('safepay_tracker_id', $tracker)->first();
+
+        if (!$payment) {
+            Log::warning('Safepay webhook for unknown tracker', ['tracker' => $tracker]);
+            return response()->json(['error' => 'Payment record not found.'], 404);
+        }
+
+        if ($payment->status === 'completed') {
+            return response()->json(['success' => true]);
+        }
+
+        if ($this->isSafepaySuccessEvent($decoded)) {
+            DB::transaction(function () use ($payment, $decoded) {
+                $order = $payment->order;
+
+                $payment->update([
+                    'status'              => 'completed',
+                    'paid_at'             => now(),
+                    'gateway_response_code'    => data_get($decoded, 'data.response_code', data_get($decoded, 'data.transaction.response_code', '000')),
+                    'gateway_response_message' => data_get($decoded, 'data.response_message', data_get($decoded, 'data.transaction.response_message')),
+                ]);
+
+                $order->increment('paid_amount', $payment->amount);
+            });
+
+            Log::info('Safepay payment completed', [
+                'payment_id' => $payment->id,
+                'order_id'   => $payment->order_id,
+                'tracker'    => $tracker,
+            ]);
+
+            return response()->json(['success' => true]);
+        }
+
+        Log::info('Safepay webhook received for non-successful event', [
+            'tracker' => $tracker,
+            'type'    => $decoded['type'] ?? $decoded['data']['type'] ?? null,
         ]);
 
-        $payload = $this->jazzCashService->buildRedirectPayload(
-            $request->amount,
-            $txnRefNo,
-            $request->shop_owner_mobile,
-            $order->manufacturer,
-            $request->cnic
-        );
+        return response()->json(['success' => false]);
+    }
 
-        Log::info('JazzCash redirect payload built for txn: ' . $txnRefNo);
+    private function isSafepaySuccessEvent(array $decoded): bool
+    {
+        $rootType = $decoded['type'] ?? '';
+        if (is_string($rootType) && str_contains(strtolower($rootType), 'succeeded')) {
+            return true;
+        }
 
-        return view('shop-owner.orders.jazzcash-redirect', compact('payload'));
+        $data = $decoded['data'] ?? $decoded;
+        $type = $data['type'] ?? $data['notification']['type'] ?? '';
+
+        if (is_string($type) && str_contains(strtolower($type), 'succeeded')) {
+            return true;
+        }
+
+        if (($data['success'] ?? null) === true) {
+            return true;
+        }
+
+        if (strtoupper($data['state'] ?? '') === 'TRACKER_ENDED') {
+            return true;
+        }
+
+        if (strtoupper($data['notification']['state'] ?? '') === 'PAID') {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -213,78 +501,4 @@ class PaymentController extends Controller
         ]);
     }
 
-    /**
-     * Callback handler (Browser redirect from JazzCash).
-     */
-    public function callback(Request $request)
-    {
-        Log::info('JazzCash Browser Return payload received: ', $request->all());
-
-        $incomingData = $request->except(['/']);
-        $txnRefNo = $request->input('pp_TxnRefNo');
-
-        $payment = Payment::where('txn_ref_no', $txnRefNo)->first();
-
-        if (!$payment) {
-            Log::error('JazzCash Return: Payment record not found for reference: ' . $txnRefNo);
-            return redirect()->route('shop.orders.index')->with('error', 'Payment record not found.');
-        }
-
-        $order = $payment->order;
-        $manufacturer = $payment->payee;
-        
-        if (!$manufacturer) {
-            return redirect()->route('shop.orders.show', $order->id)->with('error', 'Manufacturer profile missing.');
-        }
-
-        $salt = '951zt9xe85';
-
-        $regeneratedHash = $this->jazzCashService->generateSecureHash($incomingData, $salt);
-        $receivedHash = $request->input('pp_SecureHash');
-
-        if (strtoupper($regeneratedHash) !== strtoupper($receivedHash)) {
-            Log::error("JazzCash Return: Secure signature validation mismatch.");
-            return redirect()->route('shop.orders.show', $order->id)->with('error', 'Payment signature verification failed.');
-        }
-
-        $responseCode = $request->input('pp_ResponseCode');
-        $responseMessage = $request->input('pp_ResponseMessage');
-        
-        if (!in_array($payment->status, ['failed', 'completed']) || $responseCode === '000') {
-            if ($responseCode === '000') {
-                DB::transaction(function () use ($payment, $order, $request, $responseCode, $responseMessage) {
-                    $payment->update([
-                        'status'  => 'completed',
-                        'paid_at' => now(),
-                        'pp_txn_id'           => $request->input('pp_TxnRefNo'),
-                        'pp_response_code'    => $responseCode,
-                        'pp_response_message' => $responseMessage,
-                        'pp_retrieval_ref_no' => $request->input('pp_RetreivalReferenceNo') ?? $request->input('pp_RetrievalReferenceNo'),
-                    ]);
-
-                    $order->increment('paid_amount', $payment->amount);
-                });
-
-                Log::info("JazzCash Return: Payment successful for order ID: {$order->id}");
-                
-                return redirect()->route('shop.orders.show', $order->id)->with('success', 'Payment was successful!');
-            } else {
-                $payment->update([
-                    'status' => 'failed',
-                    'pp_response_code'    => $responseCode,
-                    'pp_response_message' => $responseMessage,
-                ]);
-                Log::warning("JazzCash Return: Payment failed with code {$responseCode}");
-                
-                return redirect()->route('shop.orders.show', $order->id)->with('error', "Payment Failed: " . $responseMessage);
-            }
-        }
-        
-        // If already processed
-        if ($payment->status === 'completed') {
-             return redirect()->route('shop.orders.show', $order->id)->with('success', 'Payment was already successful!');
-        }
-
-        return redirect()->route('shop.orders.show', $order->id)->with('error', "Payment Failed: " . $responseMessage);
-    }
 }

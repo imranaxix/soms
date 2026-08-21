@@ -58,15 +58,16 @@
 
 
     <div class="flex items-center gap-8 mb-8 border-b border-neutral-200">
-        <button onclick="switchTab('transactions')" id="transactionsTab" class="tab-btn active pb-4 text-sm font-semibold border-b-2 border-primary-600 text-primary-600 transition-all cursor-pointer">
-            Transactions
-        </button>
-        <button onclick="switchTab('balances')" id="balancesTab" class="tab-btn pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-700 transition-all cursor-pointer">
+        <button onclick="switchTab('balances')" id="balancesTab" class="tab-btn active pb-4 text-sm font-semibold border-b-2 border-primary-600 text-primary-600 transition-all cursor-pointer">
             Order Balances
         </button>
+        <button onclick="switchTab('transactions')" id="transactionsTab" class="tab-btn  pb-4 text-sm font-medium border-b-2 border-transparent text-neutral-500 hover:text-neutral-700 transition-all cursor-pointer">
+            Transactions
+        </button>
+        
     </div>
 
-    <div id="transactionsContent" class="tab-content block space-y-6">
+    <div id="transactionsContent" class="tab-content hidden space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
             <div class="px-6 py-5 border-b border-neutral-100">
                 <h2 class="text-lg font-semibold text-neutral-900">Completed Transactions</h2>
@@ -105,7 +106,7 @@
         </div>
     </div>
 
-    <div id="balancesContent" class="tab-content hidden space-y-6">
+    <div id="balancesContent" class="tab-content space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
             <div class="px-6 py-5 border-b border-neutral-100">
                 <h2 class="text-lg font-semibold text-neutral-900">Order Balances</h2>
@@ -117,6 +118,7 @@
                             <th class="px-6 py-4">Order #</th>
                             <th class="px-6 py-4">Product</th>
                             <th class="px-6 py-4">Manufacturer</th>
+                            <th class="px-6 py-4">Payment Terms</th>
                             <th class="px-6 py-4 text-right">Total</th>
                             <th class="px-6 py-4 text-right">Paid</th>
                             <th class="px-6 py-4 text-right">Balance</th>
@@ -132,6 +134,7 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-neutral-800">{{ $row['product'] }}</td>
                             <td class="px-6 py-4 text-sm text-neutral-600">{{ $row['manufacturer'] }}</td>
+                            <td class="px-6 py-4 text-sm text-neutral-800 capitalize">{{ $row['payment_terms'] }}</td>
                             <td class="px-6 py-4 text-sm font-bold text-neutral-900 text-right">Rs {{ number_format($row['total']) }}</td>
                             <td class="px-6 py-4 text-sm font-bold text-success-600 text-right">Rs {{ number_format($row['paid']) }}</td>
                             <td class="px-6 py-4 text-sm font-bold text-orange-600 text-right">Rs {{ number_format($row['balance']) }}</td>
@@ -154,7 +157,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-sm text-neutral-400">No orders found.</td>
+                            <td colspan="9" class="px-6 py-12 text-center text-sm text-neutral-400">No orders found.</td>
                         </tr>
                         @endforelse
                     </tbody>

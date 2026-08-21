@@ -1,6 +1,19 @@
 <aside id="sidebar" 
     class="fixed left-0 top-0 z-200 h-screen bg-[#0b4095] text-white flex flex-col transition-all duration-300 w-64 group-[.collapsed]:w-16 overflow-hidden">
     
+    @php
+    $unreadMessagesCount = 0;
+    if(auth()->check()) {
+        $userConns = auth()->user()->connections();
+        if($userConns) {
+            $unreadMessagesCount = \App\Models\Message::where('sender_id', '!=', auth()->id())
+                ->whereNull('read_at')
+                ->whereIn('connection_id', $userConns->pluck('id'))
+                ->count();
+        }
+    }
+@endphp
+
     <!-- Sidebar Toggle Row -->
     <div class="flex items-center h-16 border-b border-white/10 shrink-0 overflow-hidden">
         <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
@@ -10,7 +23,7 @@
                 </svg>
             </button>
             <span class="ml-3 text-xl font-semibold tracking-tight transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">
-                {{(auth()->user()->role?? '') === 'manufacturer' ? 'Manufacturer' : 'Shop Owner' }}
+                {{ (auth()->user()->role ?? '') === 'admin' ? 'Admin' : ((auth()->user()->role ?? '') === 'manufacturer' ? 'Manufacturer' : 'Shop Owner') }}
             </span>
         </div>
     </div>
@@ -23,7 +36,7 @@
             </div>
             <div class="ml-3 transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">
                 <p class="text-sm font-semibold leading-tight">{{ auth()->user()->name ?? 'User' }}</p>
-                <p class="text-[11px] opacity-70 leading-tight">{{ (auth()->user()->role ?? '') === 'manufacturer' ? 'Manufacturer' : 'Shop Owner' }}</p>
+                <p class="text-[11px] opacity-70 leading-tight">{{ (auth()->user()->role ?? '') === 'admin' ? 'Administrator' : ((auth()->user()->role ?? '') === 'manufacturer' ? 'Manufacturer' : 'Shop Owner') }}</p>
             </div>
         </div>
     </div>
@@ -88,17 +101,6 @@
                 </div>
             </a>
 
-            <a href="{{ route('manufacturer.payment-methods') }}" 
-               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('manufacturer.payment-methods*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
-                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
-                    <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="5" width="20" height="14" rx="2"/>
-                        <path d="M2 10h20"/>
-                    </svg>
-                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Payment Methods</span>
-                </div>
-            </a>
-
             <a href="{{ route('manufacturer.connections.index') }}" 
                class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('manufacturer.connections.*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
                 <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
@@ -109,8 +111,54 @@
                 </div>
             </a>
 
+            <a href="{{ route('chat.index') }}" 
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('chat.*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center relative">
+                    <div class="relative inline-block shrink-0">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        @if($unreadMessagesCount > 0)
+                        <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-[#11409c]"></span>
+                        @endif
+                    </div>
+                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Messages</span>
+                </div>
+            </a>
+
             <a href="{{ route('manufacturer.reports.index') }}" 
                class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('manufacturer.reports.*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
+                    <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 20V10M12 20V4M6 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Reports</span>
+                </div>
+            </a>
+        @elseif(auth()->user()->role === 'admin')
+            <!-- Admin Navigation -->
+            <a href="{{ route('admin.dashboard') }}" 
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('admin.dashboard') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
+                    <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Dashboard</span>
+                </div>
+            </a>
+
+            <a href="{{ route('admin.users') }}" 
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('admin.users*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
+                    <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Users</span>
+                </div>
+            </a>
+
+            <a href="{{ route('admin.reports') }}" 
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('admin.reports') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
                 <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
                     <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 20V10M12 20V4M6 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -154,12 +202,27 @@
             </a>
 
             <a href="{{ route('shop.connections') }}" 
-               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('shop.manufacturers') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('shop.connections') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
                 <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
                     <svg width="16" height="16" class="shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                     <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Connections</span>
+                </div>
+            </a>
+
+            <a href="{{ route('chat.index') }}" 
+               class="flex items-center h-12 text-white no-underline transition-all duration-200 border-l-4 {{ request()->routeIs('chat.*') ? 'bg-white/10 border-blue-400' : 'hover:bg-white/5 border-transparent' }}">
+                <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center relative">
+                    <div class="relative inline-block shrink-0">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        @if($unreadMessagesCount > 0)
+                        <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-[#11409c]"></span>
+                        @endif
+                    </div>
+                    <span class="ml-3 text-sm transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">Messages</span>
                 </div>
             </a>
 
@@ -242,6 +305,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const sidebarToggle = document.getElementById('sidebarToggle');
             const layoutWrapper = document.getElementById('layoutWrapper');
+            const 
             
             if (sidebarToggle && layoutWrapper) {
                 sidebarToggle.addEventListener('click', function() {

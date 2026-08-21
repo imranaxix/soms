@@ -41,7 +41,38 @@ class ManufacturerController extends Controller
             ->latest()
             ->get();
 
-        return view('manufacturer.dashboard', compact('stats', 'pendingOrders', 'activeOrders'));
+        // Revenue trends - last 6 months
+        $months = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $months->push(now()->subMonths($i));
+        }
+        $revenueLabels = $months->map(fn($m) => $m->format('M Y'))->toArray();
+        $revenueData = $months->map(function ($m) use ($user) {
+            return (int) Order::where('manufacturer_id', $user->id)
+                ->whereIn('status', ['In Progress', 'Delivered', 'Completed'])
+                ->whereYear('created_at', $m->year)
+                ->whereMonth('created_at', $m->month)
+                ->sum('total_amount');
+        })->toArray();
+
+        // Order status distribution
+        $allOrders = Order::where('manufacturer_id', $user->id)->get();
+        $statusCounts = $allOrders->groupBy('status')->map->count();
+        $distributionLabels = ['Pending', 'In Progress', 'Completed', 'Rejected'];
+        $distributionData = [
+            $statusCounts->get('Pending', 0),
+            $statusCounts->get('In Progress', 0),
+            $statusCounts->get('Completed', 0),
+            $statusCounts->get('Rejected', 0),
+        ];
+        $distributionTotal = array_sum($distributionData);
+
+        return view('manufacturer.dashboard', compact('stats', 'pendingOrders', 'activeOrders', 'distributionTotal'))
+            ->with('revenueLabels', $revenueLabels)
+            ->with('revenueData', $revenueData)
+            ->with('distributionLabels', $distributionLabels)
+            ->with('distributionData', $distributionData)
+            ->with('distributionTotal', $distributionTotal);
     }
 
     public function orders()
@@ -281,26 +312,24 @@ class ManufacturerController extends Controller
     public function editProduct($id)
     {
         $product = Auth::user()->products()->with(['variants', 'stages'])->findOrFail($id);
-        $products = Auth::user()->products()->with('variants')->get(); // for the sidebar/table if needed
+        $products = Auth::user()->products()->with('variants')->get();
 
         return view('manufacturer.catalog.edit', compact('product', 'products'));
     }
 
     public function updateProduct(Request $request, $id)
     {
-        $product = Auth::user()->products()->findOrFail($id);
+        $product = Auth::user()->products()->with(['variants', 'stages'])->findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'variations' => 'required|array|min:1',
-            'variations.*.id' => 'nullable|exists:product_variants,id',
             'variations.*.name' => 'required|string|max:255',
             'variations.*.price' => 'nullable|numeric|min:0',
             'variations.*.stock_quantity' => 'nullable|integer|min:0',
             'variations.*.image' => 'nullable|image|max:2048',
             'stages' => 'required|array|min:1',
-            'stages.*.id' => 'nullable|exists:product_stages,id',
             'stages.*.name' => 'required|string|max:255',
             'stages.*.description' => 'nullable|string',
         ]);
@@ -310,50 +339,49 @@ class ManufacturerController extends Controller
             'description' => $request->description,
         ]);
 
-        // Process Variations
-        $providedVariantIds = collect($request->variations)->pluck('id')->filter()->toArray();
-        $product->variants()->whereNotIn('id', $providedVariantIds)->delete();
+        if ($request->has('variations')) {
+            foreach ($request->variations as $variationData) {
+                $variantDataToSave = [
+                    'variant_name' => trim($variationData['name']),
+                    'price' => $variationData['price'] ?? 0,
+                    'stock_quantity' => $variationData['stock_quantity'] ?? 0,
+                ];
 
-        foreach ($request->variations as $variationData) {
-            $variantDataToSave = [
-                'variant_name' => trim($variationData['name']),
-                'price' => $variationData['price'] ?? 0,
-                'stock_quantity' => $variationData['stock_quantity'] ?? 0,
-            ];
+                if (isset($variationData['image']) && $variationData['image']) {
+                    $variantDataToSave['image'] = $variationData['image']->store('variants', 'public');
+                }
 
-            if (isset($variationData['image'])) {
-                $variantDataToSave['image'] = $variationData['image']->store('variants', 'public');
-            }
+                if (isset($variationData['id']) && $variationData['id']) {
+                    $product->variants()->where('id', $variationData['id'])->update($variantDataToSave);
+                } else {
+                    $productPrefix = strtoupper(Str::slug(substr($product->name, 0, 3), ''));
+                    $variantPrefix = strtoupper(Str::slug(substr($variationData['name'], 0, 3), ''));
+                    do {
+                        $sku = $productPrefix . '-' . $variantPrefix . '-' . strtoupper(Str::random(6));
+                    } while (\App\Models\ProductVariant::where('sku', $sku)->exists());
 
-            if (isset($variationData['id']) && $variationData['id']) {
-                $product->variants()->where('id', $variationData['id'])->update($variantDataToSave);
-            } else {
-                $productPrefix = strtoupper(Str::slug(substr($product->name, 0, 3), ''));
-                $variantPrefix = strtoupper(Str::slug(substr($variationData['name'], 0, 3), ''));
-                do {
-                    $sku = $productPrefix . '-' . $variantPrefix . '-' . strtoupper(Str::random(6));
-                } while (\App\Models\ProductVariant::where('sku', $sku)->exists());
-                
-                $variantDataToSave['sku'] = $sku;
-                $product->variants()->create($variantDataToSave);
+                    $variantDataToSave['sku'] = $sku;
+                    $product->variants()->create($variantDataToSave);
+                }
             }
         }
 
-        // Process Stages
-        $providedStageIds = collect($request->stages)->pluck('id')->filter()->toArray();
-        $product->stages()->whereNotIn('id', $providedStageIds)->delete();
+        if ($request->has('stages')) {
+            $providedStageIds = collect($request->stages)->pluck('id')->filter()->toArray();
+            $product->stages()->whereNotIn('id', $providedStageIds)->delete();
 
-        foreach ($request->stages as $index => $stageData) {
-            $stageDataToSave = [
-                'name' => trim($stageData['name']),
-                'description' => $stageData['description'] ?? null,
-                'sort_order' => $index,
-            ];
+            foreach ($request->stages as $index => $stageData) {
+                $stageDataToSave = [
+                    'name' => trim($stageData['name']),
+                    'description' => $stageData['description'] ?? null,
+                    'sort_order' => $index,
+                ];
 
-            if (isset($stageData['id']) && $stageData['id']) {
-                $product->stages()->where('id', $stageData['id'])->update($stageDataToSave);
-            } else {
-                $product->stages()->create($stageDataToSave);
+                if (isset($stageData['id']) && $stageData['id']) {
+                    $product->stages()->where('id', $stageData['id'])->update($stageDataToSave);
+                } else {
+                    $product->stages()->create($stageDataToSave);
+                }
             }
         }
 
@@ -429,7 +457,7 @@ class ManufacturerController extends Controller
                 'order_id'      => $order->id,
                 'received_from' => $order->shopOwner->business_name ?? $order->shopOwner->name,
                 'txn_ref_no'    => $p->txn_ref_no,
-                'method'        => 'JazzCash',
+                'method'        => $p->safepay_tracker_id ? 'Safepay' : ($p->stripe_payment_intent_id ? 'Stripe' : '—'),
                 'amount'        => $p->amount,
             ]);
         })->sortByDesc('date')->values();
@@ -533,7 +561,7 @@ class ManufacturerController extends Controller
                 'id' => $p->txn_ref_no,
                 'date' => $p->paid_at?->format('M d, Y') ?? $p->created_at->format('M d, Y'),
                 'partner' => $p->order->shopOwner->business_name ?? $p->order->shopOwner->name ?? '—',
-                'method' => $p->stripe_payment_intent_id ? 'Stripe' : 'JazzCash',
+                'method' => $p->stripe_payment_intent_id ? 'Stripe' : ($p->safepay_tracker_id ? 'Safepay' : '—'),
                 'status' => 'Paid',
                 'amount' => $p->amount,
             ])->toArray();
@@ -564,45 +592,5 @@ class ManufacturerController extends Controller
     {
         $user = auth()->user();
         return view('manufacturer.payment-methods.index', compact('user'));
-    }
-
-    public function saveJazzCash(Request $request)
-    {
-        $request->validate([
-            'jazzcash_mobile'         => ['required', 'regex:/^03[0-9]{9}$/'],
-            'jazzcash_account_title'  => ['required', 'string', 'min:3', 'max:100'],
-            'jazzcash_merchant_id'    => ['nullable', 'string', 'required_with:jazzcash_password,jazzcash_integrity_salt'],
-            'jazzcash_password'       => ['nullable', 'string', 'required_with:jazzcash_merchant_id,jazzcash_integrity_salt'],
-            'jazzcash_integrity_salt' => ['nullable', 'string', 'required_with:jazzcash_merchant_id,jazzcash_password'],
-        ], [
-            'jazzcash_mobile.regex' => 'Mobile number must be a valid Pakistani number starting with 03 (e.g. 03001234567).',
-            'jazzcash_merchant_id.required_with' => 'All three advanced developer credentials (Merchant ID, API Password, and Integrity Salt) must be provided together.',
-            'jazzcash_password.required_with' => 'All three advanced developer credentials (Merchant ID, API Password, and Integrity Salt) must be provided together.',
-            'jazzcash_integrity_salt.required_with' => 'All three advanced developer credentials (Merchant ID, API Password, and Integrity Salt) must be provided together.',
-        ]);
-
-        auth()->user()->update([
-            'jazzcash_mobile'         => $request->jazzcash_mobile,
-            'jazzcash_account_title'  => $request->jazzcash_account_title,
-            'jazzcash_merchant_id'    => $request->jazzcash_merchant_id,
-            'jazzcash_password'       => $request->jazzcash_password,
-            'jazzcash_integrity_salt' => $request->jazzcash_integrity_salt,
-        ]);
-
-        return back()->with('success', 'JazzCash account and direct payment settings saved successfully.');
-    }
-
-    public function removeJazzCash()
-    {
-        auth()->user()->update([
-            'jazzcash_mobile'         => null,
-            'jazzcash_account_title'  => null,
-            'jazzcash_verified'       => false,
-            'jazzcash_merchant_id'    => null,
-            'jazzcash_password'       => null,
-            'jazzcash_integrity_salt' => null,
-        ]);
-
-        return back()->with('success', 'JazzCash account removed.');
     }
 }

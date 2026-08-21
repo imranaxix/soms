@@ -3,19 +3,19 @@
 @section('page_title', 'Business Profile')
 @section('page_subtitle', 'View details and connect with this business.')
 @section('header_actions')
-    <a href="{{ route('manufacturer.connections.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+    <button onclick="history.back()" class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors shadow-sm">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        Back to Connections
-    </a>
+        Back
+    </button>
 @endsection
 @section('content')
 <main class="p-6 max-w-4xl mx-auto space-y-6">
 
 
     <!-- Profile Header Card -->
-    <div class="bg-white rounded-3xl border border-neutral-200 overflow-hidden shadow-sm relative">
+    <div class="bg-white rounded-3xl border border-neutral-200 shadow-sm relative">
         <!-- Cover Photo / Gradient -->
         <div class="h-32 bg-gradient-to-br from-indigo-600 via-indigo-500 to-primary-600"></div>
         
@@ -65,6 +65,21 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     Connected
                 </button>
+                <div class="relative">
+                    <button onclick="document.getElementById('profileDropdown').classList.toggle('hidden')" class="w-12 h-12 bg-white border border-neutral-200 text-neutral-600 rounded-xl flex items-center justify-center hover:bg-neutral-50 hover:border-neutral-300 transition shadow-sm focus:ring-2 focus:ring-indigo-500/20">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 12h.01M12 6h.01M12 18h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-neutral-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                        <form action="{{ route('connections.destroy', $connection->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this connection?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full text-left px-5 py-3.5 text-sm text-error-600 font-bold hover:bg-error-50 flex items-center gap-3 transition-colors">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Remove Connection
+                            </button>
+                        </form>
+                    </div>
+                </div>
             @endif
             </div>
         </div>
@@ -100,5 +115,16 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('profileDropdown');
+            const button = event.target.closest('button[onclick]');
+            if (dropdown && !dropdown.contains(event.target) && !button) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
 </main>
 @endsection
