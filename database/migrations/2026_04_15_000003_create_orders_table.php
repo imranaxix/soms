@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('shop_owner_id')->constrained('users');
             $table->foreignId('manufacturer_id')->constrained('users');
             $table->foreignId('product_id')->constrained('products');
-            $table->foreignId('variant_id')->constrained('product_variants');
+            $table->foreignId('variant_id')->nullable()->constrained('product_variants');
             
             $table->integer('quantity');
             $table->string('unit')->default('pieces'); // pieces, meters, kilograms
