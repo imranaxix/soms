@@ -61,6 +61,6 @@ Tests auto-clear config cache before running.
 - JazzCash `pp_BillReference` must be <= 20 chars and different from `pp_TxnRefNo` (enforced in `JazzCashService:32`)
 - Amounts are sent to JazzCash in paisas (amount * 100), not rupees
 - `RoleMiddleware` redirects to the appropriate dashboard based on role — don't add generic auth checks where `role:` middleware already applies
-- The `/` route redirects to `/login`
+- The `/` route serves the public landing page (`resources/views/landing.blade.php`)
 - No CI workflows exist
 - No `.env` file is committed (gitignored); copy `.env.example` as baseline

@@ -9,11 +9,12 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\AdminController;
 
-// Simple redirect to the login
+// Landing Page
 Route::get('/', function () {
-    return redirect('/login');
-});
+    return view('landing');
+})->name('landing');
 
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -141,4 +142,14 @@ Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('
     Route::get('/payments', [ManufacturerController::class, 'payments'])->name('payments.index');
     Route::get('/connections', [ManufacturerController::class, 'connections'])->name('connections.index');
     Route::get('/reports', [ManufacturerController::class, 'reports'])->name('reports.index');
+});
+
+// Admin Routes (Protected)
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::get('/users/{user}', [AdminController::class, 'showUser'])->name('users.show');
+    Route::post('/users/{user}/toggle-active', [AdminController::class, 'toggleActive'])->name('users.toggle-active');
+    Route::post('/users/{user}/toggle-verified', [AdminController::class, 'toggleVerified'])->name('users.toggle-verified');
+    Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
 });

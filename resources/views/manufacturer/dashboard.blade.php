@@ -228,6 +228,12 @@
             <canvas id="statusDonut"></canvas>
         </div>
 
+        @php
+            $distributionColors = $distributionTotal > 0
+                ? ['#fb923c', '#3b82f6', '#22c55e', '#ef4444']
+                : ['#e5e7eb'];
+            $distributionHasData = $distributionTotal > 0;
+        @endphp
         <script>
             // Spending Trends Bar Chart
             const spendingCtx = document.getElementById('spendingChart').getContext('2d');
@@ -264,7 +270,7 @@
                     labels: @json($distributionLabels),
                     datasets: [{
                         data: @json($distributionData),
-                        backgroundColor: @json($distributionTotal > 0 ? ['#fb923c', '#3b82f6', '#22c55e', '#ef4444'] : ['#e5e7eb']),
+                        backgroundColor: @json($distributionColors),
                         borderWidth: 0,
                         hoverOffset: 6,
                     }]
@@ -273,7 +279,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     cutout: '68%',
-                    plugins: { legend: { display: false }, tooltip: { enabled: @json($distributionTotal > 0), callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + ' orders' } } }
+                    plugins: { legend: { display: false }, tooltip: { enabled: @json($distributionHasData), callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + ' orders' } } }
                 }
             });
         </script>
