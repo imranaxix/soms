@@ -21,6 +21,7 @@ class AdminSeeder extends Seeder
                 'password' => Hash::make(env('ADMIN_PASSWORD', 'password')),
                 'is_active' => true,
                 'is_verified' => true,
+                'business_name'=> 'Admin Business',
             ],
         );
     }
