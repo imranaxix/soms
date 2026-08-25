@@ -385,7 +385,7 @@
                     </div>
 
                     @if($order->total_amount - $order->paid_amount > 0)
-                        @if($order->manufacturer->hasStripe() || app('safepay')->isConfigured())
+                        @if($order->manufacturer->hasStripe() || $order->manufacturer->hasSafepay())
                             <div class="pt-4">
                                 <a href="{{ route('shop.orders.pay', $order->id) }}" class="block w-full py-3 bg-gradient-to-r from-indigo-600 to-sky-600 text-white rounded-xl font-black text-center text-sm transition hover:opacity-90 shadow-md shadow-indigo-100">
                                     Pay Now

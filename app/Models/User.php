@@ -21,8 +21,15 @@ class User extends Authenticatable
         'password',
         'business_name',
         'role',
+        'profile_image',
         'stripe_connect_id',
         'stripe_onboarding_completed',
+        'stripe_publishable_key',
+        'stripe_secret_key',
+        'safepay_api_key',
+        'safepay_secret_key',
+        'safepay_webhook_secret',
+        'safepay_environment',
         'is_active',
         'is_verified',
     ];
@@ -38,6 +45,11 @@ class User extends Authenticatable
             'email_verified_at'  => 'datetime',
             'password'           => 'hashed',
             'stripe_onboarding_completed' => 'boolean',
+            'stripe_publishable_key'      => 'encrypted',
+            'stripe_secret_key'           => 'encrypted',
+            'safepay_api_key'             => 'encrypted',
+            'safepay_secret_key'          => 'encrypted',
+            'safepay_webhook_secret'      => 'encrypted',
             'is_active' => 'boolean',
             'is_verified' => 'boolean',
         ];
@@ -80,6 +92,12 @@ class User extends Authenticatable
     /** Whether this manufacturer has Stripe configured */
     public function hasStripe(): bool
     {
-        return !empty($this->stripe_connect_id) && $this->stripe_onboarding_completed;
+        return !empty($this->stripe_publishable_key) && !empty($this->stripe_secret_key);
+    }
+
+    /** Whether this manufacturer has Safepay configured */
+    public function hasSafepay(): bool
+    {
+        return !empty($this->safepay_api_key) && !empty($this->safepay_secret_key);
     }
 }

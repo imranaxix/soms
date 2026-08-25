@@ -76,14 +76,53 @@ class ShopOwnerController extends Controller
     {
         $user = auth()->user();
 
-        $request->validate([
+        $validated = $request->validate([
             'business_name' => 'required|string|max:255',
-            'name' => 'required|string|max:255',
+            'name'          => 'required|string|max:255',
+            'profile_image' => 'nullable|image|max:2048',
         ]);
 
-        $user->update($request->only('business_name', 'name'));
+        if ($request->hasFile('profile_image')) {
+            if ($user->profile_image) {
+                \Storage::disk('public')->delete($user->profile_image);
+            }
+            $validated['profile_image'] = $request->file('profile_image')->store('profile-images', 'public');
+        }
+
+        $user->update($validated);
 
         return back()->with('success', 'Profile updated successfully.');
+    }
+
+    public function deleteProfileImage()
+    {
+        $user = auth()->user();
+
+        if ($user->profile_image) {
+            \Storage::disk('public')->delete($user->profile_image);
+            $user->update(['profile_image' => null]);
+        }
+
+        return back()->with('success', 'Profile picture removed.');
+    }
+
+    public function uploadProfileImage(Request $request)
+    {
+        $request->validate([
+            'profile_image' => 'required|image|max:2048',
+        ]);
+
+        $user = auth()->user();
+
+        if ($user->profile_image) {
+            \Storage::disk('public')->delete($user->profile_image);
+        }
+
+        $user->update([
+            'profile_image' => $request->file('profile_image')->store('profile-images', 'public'),
+        ]);
+
+        return back()->with('success', 'Profile picture updated.');
     }
 
     public function createOrder()
@@ -297,8 +336,20 @@ class ShopOwnerController extends Controller
     public function reports()
     {
         $userId = auth()->id();
+        $period = request('period', 'all');
 
-        $allOrders = Order::where('shop_owner_id', $userId)->get();
+        $allOrders = Order::where('shop_owner_id', $userId);
+
+        if ($period === '30days') {
+            $allOrders->where('created_at', '>=', now()->subDays(30));
+        } elseif ($period === 'this_month') {
+            $allOrders->whereMonth('created_at', now()->month)
+                      ->whereYear('created_at', now()->year);
+        } elseif ($period === 'this_year') {
+            $allOrders->whereYear('created_at', now()->year);
+        }
+
+        $allOrders = $allOrders->get();
 
         $totalSpend = $allOrders->sum('total_amount');
         $totalPaid = $allOrders->sum('paid_amount');
@@ -358,10 +409,20 @@ class ShopOwnerController extends Controller
         ];
 
         // Recent transactions from completed payments
-        $transactions = Payment::where('payer_id', $userId)
+        $transactionsQuery = Payment::where('payer_id', $userId)
             ->where('status', 'completed')
-            ->with('order.manufacturer')
-            ->latest('paid_at')
+            ->with('order.manufacturer');
+
+        if ($period === '30days') {
+            $transactionsQuery->where('paid_at', '>=', now()->subDays(30));
+        } elseif ($period === 'this_month') {
+            $transactionsQuery->whereMonth('paid_at', now()->month)
+                              ->whereYear('paid_at', now()->year);
+        } elseif ($period === 'this_year') {
+            $transactionsQuery->whereYear('paid_at', now()->year);
+        }
+
+        $transactions = $transactionsQuery->latest('paid_at')
             ->limit(10)
             ->get()
             ->map(fn($p) => [
@@ -373,6 +434,6 @@ class ShopOwnerController extends Controller
                 'amount' => $p->amount,
             ])->toArray();
 
-        return view('shop-owner.reports.index', compact('stats', 'chartData', 'transactions'));
+        return view('shop-owner.reports.index', compact('stats', 'chartData', 'transactions', 'period'));
     }
 }

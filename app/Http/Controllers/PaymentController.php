@@ -31,13 +31,13 @@ class PaymentController extends Controller
 
         $manufacturer = $order->manufacturer;
 
-        if (!$manufacturer || (!$manufacturer->hasStripe() && !$this->safepayService->isConfigured())) {
+        if (!$manufacturer || (!$manufacturer->hasStripe() && !$this->safepayService->isConfigured($manufacturer))) {
             return redirect()->route('shop.orders.show', $order->id)
                 ->with('error', 'This manufacturer has not configured any payment methods yet. Please contact them to complete setup before making a payment.');
         }
 
         $balanceDue = $order->total_amount - $order->paid_amount;
-        $safepayEnabled = $this->safepayService->isConfigured();
+        $safepayEnabled = $this->safepayService->isConfigured($manufacturer);
         return view('shop-owner.orders.pay', compact('order', 'balanceDue', 'safepayEnabled'));
     }
 
@@ -63,16 +63,14 @@ class PaymentController extends Controller
 
         $amountInCents = intval(round($request->amount * 100));
 
-        \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+        \Stripe\Stripe::setApiKey($manufacturer->stripe_secret_key);
 
         try {
-            // Create a PaymentIntent direct to Connected Account
+            // Create a PaymentIntent directly to manufacturer's Stripe account
             $paymentIntent = \Stripe\PaymentIntent::create([
                 'amount' => $amountInCents,
                 'currency' => 'pkr',
                 'description' => "Order #{$order->id} payment via SOMS Platform",
-            ], [
-                'stripe_account' => $manufacturer->stripe_connect_id,
             ]);
 
             // Save pending payment record locally
@@ -89,15 +87,12 @@ class PaymentController extends Controller
 
             return response()->json([
                 'clientSecret' => $paymentIntent->client_secret,
-                'publishableKey' => config('services.stripe.key'),
-                'connectedAccountId' => $manufacturer->stripe_connect_id
+                'publishableKey' => $manufacturer->stripe_publishable_key,
             ]);
         } catch (\Exception $e) {
             Log::error('Stripe PaymentIntent creation failed', [
                 'order_id' => $order->id,
                 'manufacturer_id' => $order->manufacturer_id,
-                'stripe_account' => $manufacturer->stripe_connect_id,
-                'secret_fingerprint' => hash('sha256', (string) config('services.stripe.secret')),
                 'error' => $e->getMessage(),
             ]);
             return response()->json(['error' => $e->getMessage()], 500);
@@ -130,60 +125,24 @@ class PaymentController extends Controller
         }
 
         // Validate the payment with Stripe API
-        \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+        \Stripe\Stripe::setApiKey($order->manufacturer->stripe_secret_key);
         try {
             $paymentIntentId = $request->payment_intent_id;
-            $connectedAccountId = $order->manufacturer->stripe_connect_id ?? null;
-            $paymentIntent = null;
 
-            if ($connectedAccountId) {
-                Log::info('Stripe PaymentIntent retrieve attempt on connected account', [
-                    'order_id' => $order->id,
-                    'payment_id' => $payment->id,
-                    'payment_intent_id' => $paymentIntentId,
-                    'stripe_account' => $connectedAccountId,
-                ]);
+            Log::info('Stripe PaymentIntent retrieve attempt', [
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'payment_intent_id' => $paymentIntentId,
+            ]);
 
-                try {
-                    $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId, [
-                        'stripe_account' => $connectedAccountId,
-                    ]);
-                } catch (\Stripe\Exception\InvalidRequestException $e) {
-                    $isNotFound = $e->getHttpStatus() === 404
-                        || str_contains(strtolower($e->getMessage()), 'no such payment_intent');
+            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
 
-                    Log::warning('Connected account PaymentIntent retrieve failed', [
-                        'order_id' => $order->id,
-                        'payment_id' => $payment->id,
-                        'payment_intent_id' => $paymentIntentId,
-                        'stripe_account' => $connectedAccountId,
-                        'http_status' => $e->getHttpStatus(),
-                        'error' => $e->getMessage(),
-                        'fallback_to_platform' => $isNotFound,
-                    ]);
-
-                    if (!$isNotFound) {
-                        throw $e;
-                    }
-                }
-            }
-
-            if (!$paymentIntent) {
-                Log::info('Stripe PaymentIntent retrieve attempt on platform account', [
-                    'order_id' => $order->id,
-                    'payment_id' => $payment->id,
-                    'payment_intent_id' => $paymentIntentId,
-                ]);
-
-                $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
-
-                Log::info('Stripe PaymentIntent retrieve succeeded on platform account', [
-                    'order_id' => $order->id,
-                    'payment_id' => $payment->id,
-                    'payment_intent_id' => $paymentIntentId,
-                    'status' => $paymentIntent->status,
-                ]);
-            }
+            Log::info('Stripe PaymentIntent retrieve succeeded', [
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'payment_intent_id' => $paymentIntentId,
+                'status' => $paymentIntent->status,
+            ]);
 
             if ($paymentIntent->status === 'succeeded') {
                 DB::transaction(function () use ($payment, $order) {
@@ -262,6 +221,12 @@ class PaymentController extends Controller
             return response()->json(['received' => true]);
         }
 
+        // Use the payee manufacturer's Stripe secret key for API calls
+        $payee = $payment->payee;
+        if ($payee && !empty($payee->stripe_secret_key)) {
+            \Stripe\Stripe::setApiKey($payee->stripe_secret_key);
+        }
+
         if ($event->type === 'payment_intent.succeeded') {
             if ($payment->status !== 'completed') {
                 DB::transaction(function () use ($payment) {
@@ -302,9 +267,9 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (!$this->safepayService->isConfigured()) {
+        if (!$this->safepayService->forManufacturer($order->manufacturer)->isConfigured()) {
             return redirect()->route('shop.orders.show', $order->id)
-                ->with('error', 'Safepay is not configured.');
+                ->with('error', 'Safepay is not configured for this manufacturer.');
         }
 
         $balanceDue = $order->total_amount - $order->paid_amount;
@@ -367,31 +332,6 @@ class PaymentController extends Controller
         $payload = $request->getContent();
         $signature = $request->header('X-SFPY-SIGNATURE', '');
 
-        $webhookSecret = config('services.safepay.webhook_secret');
-        $secretMatchesApi = $webhookSecret && $webhookSecret === config('services.safepay.secret_key');
-
-        if (!$webhookSecret) {
-            Log::error('Safepay webhook secret is missing from config.');
-            return response()->json(['error' => 'Webhook secret not configured.'], 422);
-        }
-
-        if ($secretMatchesApi) {
-            Log::error('Safepay webhook secret matches API secret; set the distinct dashboard webhook secret instead.', [
-                'secret_key_set' => !empty(config('services.safepay.secret_key')),
-                'webhook_secret_set' => !empty($webhookSecret),
-            ]);
-            return response()->json(['error' => 'Webhook secret misconfigured.'], 422);
-        }
-
-        if (!$this->safepayService->verifyWebhookSignature($payload, $signature, $webhookSecret)) {
-            Log::error('Safepay webhook signature verification failed', [
-                'has_signature' => !empty($signature),
-                'payload_length' => strlen($payload),
-                'secret_matches_api' => $secretMatchesApi,
-            ]);
-            return response()->json(['error' => 'Invalid signature.'], 403);
-        }
-
         $decoded = json_decode($payload, true);
         if (!is_array($decoded)) {
             return response()->json(['error' => 'Invalid payload.'], 400);
@@ -417,6 +357,22 @@ class PaymentController extends Controller
         if (!$payment) {
             Log::warning('Safepay webhook for unknown tracker', ['tracker' => $tracker]);
             return response()->json(['error' => 'Payment record not found.'], 404);
+        }
+
+        // Verify webhook signature using the payee manufacturer's credentials
+        $payee = $payment->payee;
+        if (!$payee || empty($payee->safepay_webhook_secret)) {
+            Log::error('Safepay webhook received but payee manufacturer has no webhook secret configured.', ['payment_id' => $payment->id]);
+            return response()->json(['error' => 'Webhook secret not configured.'], 422);
+        }
+
+        if (!$this->safepayService->verifyWebhookSignature($payload, $signature, $payee->safepay_webhook_secret)) {
+            Log::error('Safepay webhook signature verification failed', [
+                'payment_id' => $payment->id,
+                'has_signature' => !empty($signature),
+                'payload_length' => strlen($payload),
+            ]);
+            return response()->json(['error' => 'Invalid signature.'], 403);
         }
 
         if ($payment->status === 'completed') {

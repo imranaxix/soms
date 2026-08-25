@@ -13,9 +13,14 @@
             </svg>
             Export PDF
         </button>
-        <button class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg text-sm font-bold hover:bg-neutral-50 transition shadow-sm">
-            March 01 - March 18, 2026
-        </button>
+        <form method="GET" action="{{ route('shop.reports') }}">
+            <select name="period" onchange="this.form.submit()" class="bg-white border border-neutral-200 rounded-lg px-4 py-2 text-sm font-bold text-neutral-700 hover:bg-neutral-50 transition shadow-sm cursor-pointer">
+                <option value="all" {{ ($period ?? 'all') === 'all' ? 'selected' : '' }}>All Time</option>
+                <option value="30days" {{ ($period ?? '') === '30days' ? 'selected' : '' }}>Last 30 Days</option>
+                <option value="this_month" {{ ($period ?? '') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                <option value="this_year" {{ ($period ?? '') === 'this_year' ? 'selected' : '' }}>This Year</option>
+            </select>
+        </form>
     </div>
 @endsection
 

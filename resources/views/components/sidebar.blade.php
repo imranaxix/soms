@@ -31,12 +31,16 @@
     <!-- User Info -->
     <div class="flex items-center py-5 border-b border-white/10 shrink-0 overflow-hidden">
         <div class="flex items-center w-full px-4 group-[.collapsed]:px-0 group-[.collapsed]:justify-center">
-            <div class="w-8 h-8 shrink-0 bg-blue-500/20 border border-white/20 rounded-full flex items-center justify-center font-bold text-white shadow-sm">
-                {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+            <div class="w-8 h-8 shrink-0 bg-blue-500/20 border border-white/20 rounded-full flex items-center justify-center font-bold text-white shadow-sm overflow-hidden">
+                @if(auth()->user()->profile_image)
+                    <img src="{{ asset('storage/' . auth()->user()->profile_image) }}" alt="Profile" class="w-full h-full object-cover">
+                @else
+                    {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                @endif
             </div>
             <div class="ml-3 transition-all duration-300 group-[.collapsed]:opacity-0 group-[.collapsed]:w-0 whitespace-nowrap overflow-hidden">
                 <p class="text-sm font-semibold leading-tight">{{ auth()->user()->name ?? 'User' }}</p>
-                <p class="text-[11px] opacity-70 leading-tight">{{ (auth()->user()->role ?? '') === 'admin' ? 'Administrator' : ((auth()->user()->role ?? '') === 'manufacturer' ? 'Manufacturer' : 'Shop Owner') }}</p>
+                <p class="text-[11px] opacity-70 leading-tight">{{ auth()->user()->business_name ?? ((auth()->user()->role ?? '') === 'admin' ? 'Administrator' : ((auth()->user()->role ?? '') === 'manufacturer' ? 'Manufacturer' : 'Shop Owner')) }}</p>
             </div>
         </div>
     </div>

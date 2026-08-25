@@ -224,9 +224,7 @@
             return;
         }
 
-        stripe = Stripe("{{ config('services.stripe.key') }}", {
-            stripeAccount: "{{ $order->manufacturer->stripe_connect_id }}"
-        });
+        stripe = Stripe("{{ $order->manufacturer->stripe_publishable_key }}");
         elements = stripe.elements();
 
         const style = {

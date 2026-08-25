@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Safepay\Checkout;
 use Safepay\SafepayClient;
@@ -9,22 +10,33 @@ use Safepay\Webhook;
 
 class SafepayService
 {
-    /**
-     * Whether the global Safepay credentials are configured.
-     */
-    public function isConfigured(): bool
-    {
-        $enabled = (bool) config('services.safepay.enabled');
-        $publicKey = (string) config('services.safepay.public_key');
-        $secretKey = (string) config('services.safepay.secret_key');
-        $webhookSecret = (string) config('services.safepay.webhook_secret');
+    protected ?User $manufacturer = null;
 
-        if (!$enabled || empty($publicKey) || empty($secretKey) || empty($webhookSecret)) {
+    /**
+     * Set the manufacturer whose credentials to use.
+     */
+    public function forManufacturer(User $manufacturer): self
+    {
+        $this->manufacturer = $manufacturer;
+        return $this;
+    }
+
+    /**
+     * Whether the given manufacturer has Safepay credentials configured.
+     */
+    public function isConfigured(?User $manufacturer = null): bool
+    {
+        $manufacturer ??= $this->manufacturer;
+
+        if (!$manufacturer || !$manufacturer->hasSafepay()) {
             return false;
         }
 
-        if ($secretKey === $webhookSecret) {
-            Log::warning('Safepay config mismatch: SAFEPAY_SECRET_KEY and SAFEPAY_WEBHOOK_SECRET are identical. Use the dashboard webhook secret instead.');
+        $secretKey = $manufacturer->safepay_secret_key;
+        $webhookSecret = $manufacturer->safepay_webhook_secret;
+
+        if (!empty($secretKey) && !empty($webhookSecret) && $secretKey === $webhookSecret) {
+            Log::warning('Safepay config mismatch for manufacturer ' . $manufacturer->id . ': secret_key and webhook_secret are identical.');
             return false;
         }
 
@@ -183,17 +195,17 @@ class SafepayService
 
     private function environment(): string
     {
-        return config('services.safepay.environment', 'sandbox');
+        return $this->manufacturer?->safepay_environment ?? config('services.safepay.environment', 'sandbox');
     }
 
     private function publicKey(): string
     {
-        return (string) config('services.safepay.public_key');
+        return (string) ($this->manufacturer?->safepay_api_key ?? config('services.safepay.public_key'));
     }
 
     private function secretKey(): string
     {
-        return (string) config('services.safepay.secret_key');
+        return (string) ($this->manufacturer?->safepay_secret_key ?? config('services.safepay.secret_key'));
     }
 
     private function apiBaseUrl(): string

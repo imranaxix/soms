@@ -4,11 +4,11 @@
 @section('page_title', 'My Profile')
 @section('page_subtitle', 'Manage your account settings and business information.')
 @section('header_actions')
-    <a href="{{ route('manufacturer.connections.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+    <a href="{{ url()->previous(route('manufacturer.dashboard')) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors shadow-sm">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        Back to Connections
+        Back
     </a>
 @endsection
 @section('content')
@@ -21,10 +21,34 @@
         
         <div class="px-8 pb-8 pt-4 flex flex-col md:flex-row items-center md:items-end justify-between gap-6 relative -mt-16 md:-mt-12">
             <div class="flex flex-col md:flex-row items-center md:items-end gap-6 w-full md:w-auto">
-                <div class="w-32 h-32 bg-white rounded-3xl p-1.5 shadow-xl relative shrink-0">
-                    <div class="w-full h-full bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 text-5xl font-black">
-                        {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
+                <div class="w-32 h-32 bg-white rounded-3xl p-1.5 shadow-xl relative shrink-0 group">
+                    @if($user->profile_image)
+                        <img src="{{ asset('storage/' . $user->profile_image) }}" alt="Profile" class="w-full h-full rounded-2xl object-cover">
+                    @else
+                        <div class="w-full h-full bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 text-5xl font-black">
+                            {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
+                        </div>
+                    @endif
+                    <div class="absolute inset-0 bg-black/50 rounded-2xl flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onclick="document.getElementById('profile-image-input').click()" class="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white text-[11px] font-bold transition-colors">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Replace
+                        </button>
+                        @if($user->profile_image)
+                        <form action="{{ route('manufacturer.profile.image.delete') }}" method="POST" onsubmit="return confirm('Remove profile picture?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/80 hover:bg-red-500 rounded-lg text-white text-[11px] font-bold transition-colors">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete
+                            </button>
+                        </form>
+                        @endif
                     </div>
+                    <form action="{{ route('manufacturer.profile.image.upload') }}" method="POST" enctype="multipart/form-data" class="contents">
+                        @csrf
+                        <input type="file" id="profile-image-input" name="profile_image" accept="image/*" class="hidden" onchange="this.form.submit()">
+                    </form>
                 </div>
                 <div class="text-center md:text-left pb-1 mt-5 md:mt-0">
                     <h2 class="text-3xl font-black text-neutral-900 tracking-tight leading-tight">{{ $user->business_name ?? $user->name }}</h2>
@@ -38,6 +62,8 @@
             </div>
         </div>
     </div>
+
+    
 
     <!-- Account Details Form -->
     <div class="bg-white rounded-3xl border border-neutral-200 overflow-hidden shadow-sm">
@@ -84,6 +110,70 @@
                     <button type="submit" class="px-10 py-3.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all text-sm transform hover:-translate-y-0.5">Save Profile</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="bg-white rounded-3xl border border-neutral-200 overflow-hidden shadow-sm">
+        <div class="px-8 py-6 border-b border-neutral-100 bg-neutral-50/50 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-neutral-900">Payment Methods</h3>
+                <p class="text-xs text-neutral-500 mt-0.5">Manage how you receive payments from Shop Owners</p>
+            </div>
+            <div class="w-10 h-10 bg-white border border-neutral-200 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+            </div>
+        </div>
+        <div class="p-8 space-y-4">
+
+            {{-- Stripe --}}
+            <div class="flex items-center justify-between p-5 rounded-2xl border {{ $user->hasStripe() ? 'border-green-200 bg-green-50/40' : 'border-neutral-200 bg-neutral-50/40' }}">
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                        <img src="{{ asset('stripe-logo.svg') }}" alt="Stripe" class="w-7 h-7 object-contain">
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-neutral-900">Credit &amp; Debit Cards (Stripe)</p>
+                        <p class="text-xs text-neutral-400 mt-0.5">Accept card payments worldwide</p>
+                    </div>
+                </div>
+                @if($user->hasStripe())
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 font-bold text-xs rounded-full border border-green-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span>
+                        Active
+                    </span>
+                @else
+                    <a href="{{ route('manufacturer.payments.index', ['tab' => 'methods']) }}" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-full hover:bg-indigo-700 transition-colors shadow-sm">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Stripe
+                    </a>
+                @endif
+            </div>
+
+            {{-- Safepay --}}
+            <div class="flex items-center justify-between p-5 rounded-2xl border {{ $user->hasSafepay() ? 'border-green-200 bg-green-50/40' : 'border-neutral-200 bg-neutral-50/40' }}">
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                        <img src="{{ asset('safepay-logo.png') }}" alt="Safepay" class="w-7 h-7 object-contain">
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-neutral-900">Safepay</p>
+                        <p class="text-xs text-neutral-400 mt-0.5">Accept payments via Safepay across supported regions</p>
+                    </div>
+                </div>
+                @if($user->hasSafepay())
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 font-bold text-xs rounded-full border border-green-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span>
+                        Active
+                    </span>
+                @else
+                    <a href="{{ route('manufacturer.payments.index', ['tab' => 'methods']) }}" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-full hover:bg-emerald-700 transition-colors shadow-sm">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Safepay
+                    </a>
+                @endif
+            </div>
+
         </div>
     </div>
 </main>

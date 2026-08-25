@@ -13,10 +13,34 @@
         
         <div class="px-8 pb-8 pt-4 flex flex-col md:flex-row items-center md:items-end justify-between gap-6 relative -mt-16 md:-mt-12">
             <div class="flex flex-col md:flex-row items-center md:items-end gap-6 w-full md:w-auto">
-                <div class="w-32 h-32 bg-white rounded-3xl p-1.5 shadow-xl relative shrink-0">
-                    <div class="w-full h-full bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 text-5xl font-black">
-                        {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
+                <div class="w-32 h-32 bg-white rounded-3xl p-1.5 shadow-xl relative shrink-0 group">
+                    @if($user->profile_image)
+                        <img src="{{ asset('storage/' . $user->profile_image) }}" alt="Profile" class="w-full h-full rounded-2xl object-cover">
+                    @else
+                        <div class="w-full h-full bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 text-5xl font-black">
+                            {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
+                        </div>
+                    @endif
+                    <div class="absolute inset-0 bg-black/50 rounded-2xl flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onclick="document.getElementById('shop-profile-image-input').click()" class="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white text-[11px] font-bold transition-colors">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Replace
+                        </button>
+                        @if($user->profile_image)
+                        <form action="{{ route('shop.profile.image.delete') }}" method="POST" onsubmit="return confirm('Remove profile picture?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/80 hover:bg-red-500 rounded-lg text-white text-[11px] font-bold transition-colors">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete
+                            </button>
+                        </form>
+                        @endif
                     </div>
+                    <form action="{{ route('shop.profile.image.upload') }}" method="POST" enctype="multipart/form-data" class="contents">
+                        @csrf
+                        <input type="file" id="shop-profile-image-input" name="profile_image" accept="image/*" class="hidden" onchange="this.form.submit()">
+                    </form>
                 </div>
                 <div class="text-center md:text-left pb-1 mt-5 md:mt-0">
                     <h2 class="text-3xl font-black text-neutral-900 tracking-tight leading-tight">{{ $user->business_name ?? $user->name }}</h2>

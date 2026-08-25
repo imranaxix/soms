@@ -82,6 +82,8 @@ Route::middleware(['auth', 'role:shop_owner'])->group(function () {
     Route::get('/shop/dashboard', [ShopOwnerController::class, 'dashboard'])->name('shop.dashboard');
     Route::get('/shop/profile', [ShopOwnerController::class, 'profile'])->name('shop.profile');
     Route::put('/shop/profile', [ShopOwnerController::class, 'updateProfile'])->name('shop.profile.update');
+    Route::post('/shop/profile/image', [ShopOwnerController::class, 'uploadProfileImage'])->name('shop.profile.image.upload');
+    Route::delete('/shop/profile/image', [ShopOwnerController::class, 'deleteProfileImage'])->name('shop.profile.image.delete');
     
     // Shop Order Routes
     Route::get('/shop/orders', [ShopOwnerController::class, 'orders'])->name('shop.orders.index');
@@ -117,13 +119,16 @@ Route::middleware(['auth', 'role:manufacturer'])->prefix('manufacturer')->name('
     Route::get('/dashboard', [ManufacturerController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [ManufacturerController::class, 'profile'])->name('profile');
     Route::put('/profile', [ManufacturerController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/image', [ManufacturerController::class, 'uploadProfileImage'])->name('profile.image.upload');
+    Route::delete('/profile/image', [ManufacturerController::class, 'deleteProfileImage'])->name('profile.image.delete');
     
     // Stripe onboarding routes
     Route::get('/stripe/connect', [StripeConnectController::class, 'connect'])->name('stripe.connect');
     Route::get('/stripe/callback', [StripeConnectController::class, 'callback'])->name('stripe.callback');
     Route::post('/stripe/disconnect', [StripeConnectController::class, 'disconnect'])->name('stripe.disconnect');
 
-    Route::get('/payment-methods', [ManufacturerController::class, 'paymentMethods'])->name('payment-methods');
+    Route::get('/payment-methods', fn () => redirect()->route('manufacturer.payments.index', ['tab' => 'methods']))->name('payment-methods');
+    Route::post('/payment-methods', [ManufacturerController::class, 'updatePaymentMethods'])->name('payment-methods.update');
     Route::get('/orders', [ManufacturerController::class, 'orders'])->name('orders.index');
     Route::get('/orders/{id}', [ManufacturerController::class, 'showOrder'])->name('orders.show');
     Route::post('/orders/{id}/accept', [ManufacturerController::class, 'acceptOrder'])->name('orders.accept');

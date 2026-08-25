@@ -5,12 +5,22 @@
 @section('page_subtitle', 'Detailed financial and order insights')
 
 @section('header_actions')
-    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors shadow-sm uppercase tracking-wider">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 15V19C21 19.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Export PDF
-    </button>
+    <div class="flex items-center gap-3">
+        <form method="GET" action="{{ route('manufacturer.reports.index') }}">
+            <select name="period" onchange="this.form.submit()" class="bg-white border border-neutral-200 rounded-lg px-4 py-1.5 text-sm font-bold text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm cursor-pointer uppercase tracking-wider">
+                <option value="all" {{ ($period ?? 'all') === 'all' ? 'selected' : '' }}>All Time</option>
+                <option value="30days" {{ ($period ?? '') === '30days' ? 'selected' : '' }}>Last 30 Days</option>
+                <option value="this_month" {{ ($period ?? '') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                <option value="this_year" {{ ($period ?? '') === 'this_year' ? 'selected' : '' }}>This Year</option>
+            </select>
+        </form>
+        <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors shadow-sm uppercase tracking-wider">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15V19C21 19.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Export PDF
+        </button>
+    </div>
 @endsection
 
 @section('content')
