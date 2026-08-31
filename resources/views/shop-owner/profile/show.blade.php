@@ -21,9 +21,13 @@
         <div class="px-8 pb-8 pt-4 flex flex-col md:flex-row items-center md:items-end justify-between gap-6 relative -mt-16 md:-mt-12">
             <div class="flex flex-col md:flex-row items-center md:items-end gap-6 w-full md:w-auto">
                 <div class="w-32 h-32 bg-white rounded-3xl p-1.5 shadow-xl relative shrink-0">
-                    <div class="w-full h-full bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 text-5xl font-black">
-                        {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
-                    </div>
+                    @if($user->profile_image)
+                        <img src="{{ asset('storage/' . $user->profile_image) }}" alt="{{ $user->business_name ?? $user->name }}" class="w-full h-full rounded-2xl object-cover">
+                    @else
+                        <div class="w-full h-full bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 text-5xl font-black">
+                            {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
+                        </div>
+                    @endif
                 </div>
                 <div class="text-center md:text-left pb-1 mt-5 md:mt-0">
                     <h2 class="text-3xl font-black text-neutral-900 tracking-tight leading-tight">{{ $user->business_name ?? $user->name }}</h2>

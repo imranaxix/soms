@@ -58,9 +58,13 @@
             @php $partner = $request->manufacturer; @endphp
             <div class="p-6 rounded-xl border border-warning-200 bg-warning-50/30 hover:bg-white hover:border-warning-300 hover:shadow-md transition-all group">
                 <div class="flex items-center gap-4 mb-6">
+                    @if($partner->profile_image)
+                    <img src="{{ asset('storage/' . $partner->profile_image) }}" alt="{{ $partner->business_name ?? $partner->name }}" class="w-14 h-14 rounded-full object-cover shadow-sm">
+                    @else
                     <div class="w-14 h-14 rounded-full bg-warning-500 text-white flex items-center justify-center text-xl font-bold shadow-sm">
                         {{ strtoupper(substr($partner->business_name ?? $partner->name, 0, 1)) }}
                     </div>
+                    @endif
                     <div>
                         <h3 class="text-base font-bold text-neutral-900 leading-tight">{{ $partner->business_name ?? $partner->name }}</h3>
                         <p class="text-xs text-neutral-500 mt-0.5">{{ $partner->email }}</p>
@@ -111,9 +115,13 @@
                 </div>
 
                 <div class="flex items-center gap-4 mb-6 pt-2">
+                    @if($partner->profile_image)
+                    <img src="{{ asset('storage/' . $partner->profile_image) }}" alt="{{ $partner->business_name ?? $partner->name }}" class="w-16 h-16 rounded-2xl object-cover shadow-md shrink-0">
+                    @else
                     <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center text-2xl font-black shadow-md shrink-0">
                         {{ strtoupper(substr($partner->business_name ?? $partner->name, 0, 1)) }}
                     </div>
+                    @endif
                     <div class="pr-6 overflow-hidden">
                         <h3 class="text-lg font-black text-neutral-900 leading-tight truncate">{{ $partner->business_name ?? $partner->name }}</h3>
                         <p class="text-sm font-medium text-neutral-500 mt-1 truncate" title="{{ $partner->email }}">{{ $partner->email }}</p>

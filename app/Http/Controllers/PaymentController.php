@@ -450,10 +450,41 @@ class PaymentController extends Controller
 
         $latestPayment = $order->payments()->latest()->first();
 
+        if ($latestPayment && $latestPayment->status === 'pending' && $this->isStalePending($latestPayment)) {
+            $this->expirePendingPayment($latestPayment);
+            $latestPayment->refresh();
+        }
+
         return response()->json([
             'status'      => $latestPayment ? $latestPayment->status : null,
             'paid_amount' => $order->paid_amount,
             'balance'     => $order->total_amount - $order->paid_amount,
+        ]);
+    }
+
+    /**
+     * Check if a pending payment is older than 1 minute.
+     */
+    private function isStalePending(Payment $payment): bool
+    {
+        return $payment->created_at->diffInSeconds(now()) > 60;
+    }
+
+    /**
+     * Mark a stale pending payment as failed.
+     */
+    private function expirePendingPayment(Payment $payment): void
+    {
+        $payment->update([
+            'status'                 => 'failed',
+            'gateway_response_code'  => 'TIMEOUT',
+            'gateway_response_message' => 'Payment timed out. No confirmation received within 1 minute.',
+        ]);
+
+        Log::info('Pending payment auto-expired', [
+            'payment_id' => $payment->id,
+            'order_id'   => $payment->order_id,
+            'created_at' => $payment->created_at->toISOString(),
         ]);
     }
 

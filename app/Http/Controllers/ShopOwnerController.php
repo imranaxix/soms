@@ -245,6 +245,16 @@ class ShopOwnerController extends Controller
             ->with(['manufacturer', 'product', 'variant', 'stages'])
             ->findOrFail($id);
 
+        $latestPayment = $order->payments()->latest()->first();
+        if ($latestPayment && $latestPayment->status === 'pending'
+            && $latestPayment->created_at->diffInSeconds(now()) > 60) {
+            $latestPayment->update([
+                'status'                   => 'failed',
+                'gateway_response_code'    => 'TIMEOUT',
+                'gateway_response_message' => 'Payment timed out. No confirmation received within 1 minute.',
+            ]);
+        }
+
         return view('shop-owner.orders.show', compact('order'));
     }
 

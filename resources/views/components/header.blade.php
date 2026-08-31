@@ -1,6 +1,11 @@
-<header class="h-16 bg-white border-b border-neutral-200 px-6 flex items-center justify-between sticky top-0 z-[190] shadow-sm">
+<header class="h-16 bg-white border-b border-neutral-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-[190] shadow-sm">
     <!-- Brand/Logo (matching Header.js) -->
     <div class="flex items-center gap-3">
+        <button id="mobileMenuBtn" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 transition-all" aria-label="Menu" title="Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </button>
         <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-primary-600/20">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -26,7 +31,7 @@
                 <span class="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-error-500 rounded-full border-2 border-white"></span>
                 @endif
             </button>
-            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-neutral-200 z-50">
+            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-neutral-200 z-50">
                 <div class="p-4 border-b border-neutral-100 flex justify-between items-center">
                     <h3 class="font-bold text-neutral-900">Notifications</h3>
                     @if(auth()->user()->unreadNotifications->count() > 0)
@@ -61,10 +66,14 @@
         </div>
 
         <!-- Profile -->
-        <a href="{{ auth()->user()->role === 'manufacturer' ? route('manufacturer.profile') : (auth()->user()->role === 'admin' ? route('admin.dashboard') : route('shop.profile')) }}" class="w-8 h-8 flex flex-col items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 transition-all relative" title="profile">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
-            </svg>
+        <a href="{{ auth()->user()->role === 'manufacturer' ? route('manufacturer.profile') : (auth()->user()->role === 'admin' ? route('admin.dashboard') : route('shop.profile')) }}" class="w-10 h-10 flex items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 transition-all relative" title="profile">
+            @if(auth()->user()->profile_image)
+                <img src="{{ asset('storage/' . auth()->user()->profile_image) }}" alt="Profile" class="w-8 h-8 rounded-full object-cover border border-neutral-200">
+            @else
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                    <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
+                </svg>
+            @endif
         </a>
     </div>
 </header>

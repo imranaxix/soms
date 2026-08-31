@@ -117,7 +117,7 @@
                         <span class="w-3 h-3 rounded-full bg-error-500"></span>
                         <span class="w-3 h-3 rounded-full bg-warning-500"></span>
                         <span class="w-3 h-3 rounded-full bg-success-500"></span>
-                        <span class="ml-4 text-xs font-semibold text-neutral-400">soms.app / orders / #1042</span>
+                        <span class="ml-4 text-xs font-semibold text-neutral-400">soms.website / orders / #1042</span>
                     </div>
                     <div class="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-neutral-100">
                         {{-- Order summary --}}

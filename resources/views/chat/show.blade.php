@@ -30,9 +30,13 @@
                 @endphp
                 <a href="{{ route('chat.show', $conn->id) }}" data-name="{{ $pName }}" class="conn-item flex items-center gap-4 px-5 py-4 transition-colors border-b border-neutral-100/50 group {{ $isActive ? 'bg-white shadow-[inset_4px_0_0_#4f46e5]' : 'hover:bg-white' }}">
                     <div class="relative shrink-0">
+                        @if($p->profile_image)
+                        <img src="{{ asset('storage/' . $p->profile_image) }}" alt="{{ $pName }}" class="w-12 h-12 rounded-2xl object-cover shadow-sm">
+                        @else
                         <div class="w-12 h-12 rounded-2xl bg-gradient-to-br {{ $isActive ? 'from-indigo-600 to-blue-700 shadow-md shadow-indigo-100' : 'from-neutral-400 to-neutral-500' }} text-white font-black flex items-center justify-center text-lg transition-all">
                             {{ $pInit }}
                         </div>
+                        @endif
                         @if($unread > 0 && !$isActive)
                         <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                             {{ $unread > 9 ? '9+' : $unread }}
@@ -78,9 +82,13 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M5 12L12 19M5 12L12 5"/></svg>
                 </a>
                 
+                @if($partner->profile_image)
+                <img src="{{ asset('storage/' . $partner->profile_image) }}" alt="{{ $partner->business_name ?? $partner->name }}" class="w-11 h-11 rounded-2xl object-cover shadow-sm">
+                @else
                 <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-black flex items-center justify-center text-lg shadow-sm">
                     {{ strtoupper(substr($partner->business_name ?? $partner->name, 0, 1)) }}
                 </div>
+                @endif
                 <div class="flex-1 min-w-0">
                     <h2 class="text-sm font-black text-neutral-900 truncate">{{ $partner->business_name ?? $partner->name }}</h2>
                     <div class="flex items-center gap-1.5 mt-0.5">
@@ -103,9 +111,13 @@
                 @php $isMine = $msg->sender_id === auth()->id(); @endphp
                 <div class="flex {{ $isMine ? 'justify-end' : 'justify-start' }} group" data-msg-id="{{ $msg->id }}">
                     @unless($isMine)
+                    @if($partner->profile_image)
+                    <img src="{{ asset('storage/' . $partner->profile_image) }}" alt="{{ $partner->business_name ?? $partner->name }}" class="w-8 h-8 rounded-full object-cover shrink-0 mr-3 mt-auto mb-5 shadow-sm">
+                    @else
                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0 mr-3 mt-auto mb-5 shadow-sm">
                         {{ strtoupper(substr($partner->business_name ?? $partner->name, 0, 1)) }}
                     </div>
+                    @endif
                     @endunless
 
                     <div class="max-w-[70%]">
@@ -187,6 +199,7 @@ textarea::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
     const sendUrl   = "{{ route('chat.send', $connection->id) }}";
     const csrf      = "{{ csrf_token() }}";
     const partnerInitial = "{{ strtoupper(substr($partner->business_name ?? $partner->name, 0, 1)) }}";
+    const partnerAvatar = @if($partner->profile_image) "{{ asset('storage/' . $partner->profile_image) }}" @else null @endif;
 
     let lastId = {{ $messages->last()?->id ?? 0 }};
 
@@ -225,8 +238,11 @@ textarea::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
                     <p class="text-[10px] text-neutral-400 mt-1.5 font-medium text-right pr-1">${msg.time}</p>
                 </div>`;
         } else {
+            const avatarHtml = partnerAvatar
+                ? `<img src="${partnerAvatar}" alt="partner" class="w-8 h-8 rounded-full object-cover shrink-0 mr-3 mt-auto mb-5 shadow-sm">`
+                : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0 mr-3 mt-auto mb-5 shadow-sm">${partnerInitial}</div>`;
             wrap.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0 mr-3 mt-auto mb-5 shadow-sm">${partnerInitial}</div>
+                ${avatarHtml}
                 <div class="max-w-[70%]">
                     <div class="px-5 py-3 rounded-2xl rounded-bl-sm text-[13px] leading-relaxed font-medium bg-white text-neutral-800 shadow-sm border border-neutral-100">${msg.body}</div>
                     <p class="text-[10px] text-neutral-400 mt-1.5 font-medium text-left pl-1">${msg.time}</p>

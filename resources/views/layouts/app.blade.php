@@ -55,8 +55,11 @@
         <!-- Sidebar Component -->
         @include('components.sidebar')
 
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="sidebarBackdrop" class="hidden fixed inset-0 z-[195] bg-neutral-900/50 lg:hidden"></div>
+
         <!-- Main Wrapper -->
-        <div id="mainWrapper" class="flex-1 flex flex-col min-h-screen transition-all duration-300 ml-64 group-[.collapsed]:ml-16">
+        <div id="mainWrapper" class="flex-1 flex flex-col min-h-screen transition-all duration-300 ml-0 lg:ml-64 lg:group-[.collapsed]:ml-16">
             <!-- Global Header Component (matching Header.js) -->
             @include('components.header')
 
@@ -65,7 +68,7 @@
                 @include('components.page-header')
             @endunless
 
-            <main class="flex-1 p-6">
+            <main class="flex-1 p-4 sm:p-6">
                 @yield('content')
             </main>
         </div>

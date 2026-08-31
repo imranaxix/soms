@@ -368,9 +368,13 @@
                 </div>
                 <div class="p-6">
                     <div class="flex items-center gap-4 mb-5">
+                        @if($order->shopOwner->profile_image)
+                        <img src="{{ asset('storage/' . $order->shopOwner->profile_image) }}" alt="{{ $order->shopOwner->business_name ?? $order->shopOwner->name }}" class="w-12 h-12 rounded-xl object-cover">
+                        @else
                         <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-xl uppercase">
                             {{ substr($order->shopOwner->business_name ?? $order->shopOwner->name, 0, 1) }}
                         </div>
+                        @endif
                         <div>
                             <h4 class="font-bold text-neutral-900">{{ $order->shopOwner->business_name ?? $order->shopOwner->name }}</h4>
                             <p class="text-[11px] text-neutral-500">{{ $order->shopOwner->email }}</p>

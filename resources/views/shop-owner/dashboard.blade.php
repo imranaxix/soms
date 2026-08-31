@@ -86,7 +86,7 @@
         <div class="mb-6 flex justify-between items-center">
             <h2 class="text-xl font-semibold text-neutral-900 leading-none">Payment Summary</h2>
         </div>
-        <div class="flex items-center justify-between px-16 py-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 sm:px-16 px-2 py-6 text-center sm:text-left">
             <div class="flex flex-col justify-center items-center">
                 <p class="text-sm text-neutral-500 uppercase tracking-wider mb-1">Total Amount</p>
                 <p class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalAmount']) }}</p>

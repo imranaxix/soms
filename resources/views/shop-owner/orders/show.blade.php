@@ -116,6 +116,16 @@
                     <p class="text-xs text-red-500 mt-0.5">Sorry! Your transaction was not successful. Please try again later.</p>
                 </div>
             </div>
+            @elseif($latestPayment && $latestPayment->status === 'failed' && !$latestPayment->paid_at)
+            <div class="rounded-2xl border border-red-200 bg-red-50 p-5 flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 shrink-0">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <div>
+                    <p class="font-bold text-red-700 text-sm">Payment of Rs {{ number_format($latestPayment->amount) }} failed</p>
+                    <p class="text-xs text-red-500 mt-0.5">Payment was not confirmed within the required time. Please try again.</p>
+                </div>
+            </div>
             @endif
 
             <!-- Action Banner: Cancel (Pending) -->
@@ -407,9 +417,13 @@
                 </div>
                 <div class="p-6">
                     <div class="flex items-center gap-4 mb-6">
+                        @if($order->manufacturer->profile_image)
+                        <img src="{{ asset('storage/' . $order->manufacturer->profile_image) }}" alt="{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}" class="w-12 h-12 rounded-xl object-cover">
+                        @else
                         <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-xl uppercase">
                             {{ substr($order->manufacturer->business_name ?? $order->manufacturer->name, 0, 1) }}
                         </div>
+                        @endif
                         <div>
                             <h4 class="font-bold text-neutral-900">{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}</h4>
                             <p class="text-[11px] font-bold text-indigo-600 uppercase tracking-tight">Verified Supply Partner</p>
@@ -435,8 +449,9 @@
                     if (data.status && data.status !== 'pending') {
                         clearInterval(checkPaymentInterval);
                         window.location.reload();
-                    } else if (pollAttempts >= 40) {
+                    } else if (pollAttempts >= 30) {
                         clearInterval(checkPaymentInterval);
+                        window.location.reload();
                     }
                 })
                 .catch(err => console.error("Error polling payment status:", err));

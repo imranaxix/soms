@@ -29,9 +29,13 @@
                 @endphp
                 <a href="{{ route('chat.show', $conn->id) }}" data-name="{{ $pName }}" class="conn-item flex items-center gap-4 px-5 py-4 hover:bg-white transition-colors border-b border-neutral-100/50 group">
                     <div class="relative shrink-0">
+                        @if($p->profile_image)
+                        <img src="{{ asset('storage/' . $p->profile_image) }}" alt="{{ $pName }}" class="w-12 h-12 rounded-2xl object-cover shadow-sm">
+                        @else
                         <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-black flex items-center justify-center text-lg shadow-sm">
                             {{ $pInit }}
                         </div>
+                        @endif
                         @if($unread > 0)
                         <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                             {{ $unread > 9 ? '9+' : $unread }}

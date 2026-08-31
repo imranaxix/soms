@@ -14,9 +14,13 @@
     <div class="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm">
         <div class="p-8 flex items-center justify-between gap-6">
             <div class="flex items-center gap-6">
+                @if($user->profile_image)
+                <img src="{{ asset('storage/' . $user->profile_image) }}" alt="{{ $user->business_name ?? $user->name }}" class="w-24 h-24 rounded-full object-cover shadow-inner">
+                @else
                 <div class="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-4xl font-bold shadow-inner">
                     {{ strtoupper(substr($user->business_name ?? $user->name, 0, 1)) }}
                 </div>
+                @endif
                 <div>
                     <h2 class="text-2xl font-bold text-neutral-900">{{ $user->business_name ?? $user->name }}</h2>
                     <p class="text-neutral-500 font-medium">{{ $user->email }}</p>

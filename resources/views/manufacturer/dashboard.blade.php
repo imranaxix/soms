@@ -139,7 +139,7 @@
     <!-- Payment Summary Section -->
     <div class="bg-white rounded-xl border border-neutral-200 shadow-sm p-6">
         <h2 class="text-lg font-bold text-neutral-900 mb-6">Payment Summary</h2>
-        <div class="grid grid-cols-3 gap-8 text-center mb-8 py-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center mb-8 py-6">
             <div>
                 <p class="text-xs text-neutral-500 uppercase font-bold tracking-wider mb-2">Total Revenue</p>
                 <h3 class="text-2xl font-bold text-neutral-900">Rs {{ number_format($stats['totalRevenue']) }}</h3>

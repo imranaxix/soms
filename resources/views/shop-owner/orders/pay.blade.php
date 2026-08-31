@@ -170,9 +170,13 @@
             <div class="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm">
                 <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Paying to</h4>
                 <div class="flex items-center gap-3">
+                    @if($order->manufacturer->profile_image)
+                    <img src="{{ asset('storage/' . $order->manufacturer->profile_image) }}" alt="{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}" class="w-10 h-10 rounded-xl object-cover">
+                    @else
                     <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-sm uppercase">
                         {{ substr($order->manufacturer->business_name ?? $order->manufacturer->name, 0, 1) }}
                     </div>
+                    @endif
                     <div>
                         <h5 class="text-sm font-bold text-neutral-800">{{ $order->manufacturer->business_name ?? $order->manufacturer->name }}</h5>
                     </div>

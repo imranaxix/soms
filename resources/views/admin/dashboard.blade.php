@@ -100,7 +100,7 @@
             </div>
             <div class="divide-y divide-neutral-100">
                 @forelse($recentUsers as $user)
-                <a href="{{ route('admin.users.show', $user->id) }}" class="flex items-center gap-4 px-6 py-4 hover:bg-neutral-50 transition">
+                <a href="{{ route('admin.users.show', $user->id) }}" class="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-neutral-50 transition">
                     <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center font-bold uppercase text-sm shrink-0">
                         {{ substr($user->name, 0, 1) }}
                     </div>
@@ -125,7 +125,7 @@
             </div>
             <div class="divide-y divide-neutral-100">
                 @forelse($recentPayments as $payment)
-                <div class="flex items-center gap-4 px-6 py-4">
+                <div class="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-neutral-900">
                             Rs {{ number_format($payment->amount) }}
