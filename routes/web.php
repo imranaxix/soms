@@ -157,4 +157,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/users/{user}/toggle-active', [AdminController::class, 'toggleActive'])->name('users.toggle-active');
     Route::post('/users/{user}/toggle-verified', [AdminController::class, 'toggleVerified'])->name('users.toggle-verified');
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
+
+    Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+    Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/image', [AdminController::class, 'uploadProfileImage'])->name('profile.image.upload');
+    Route::delete('/profile/image', [AdminController::class, 'deleteProfileImage'])->name('profile.image.delete');
 });

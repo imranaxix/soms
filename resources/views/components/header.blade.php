@@ -66,7 +66,7 @@
         </div>
 
         <!-- Profile -->
-        <a href="{{ auth()->user()->role === 'manufacturer' ? route('manufacturer.profile') : (auth()->user()->role === 'admin' ? route('admin.dashboard') : route('shop.profile')) }}" class="w-10 h-10 flex items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 transition-all relative" title="profile">
+        <a href="{{ auth()->user()->role === 'manufacturer' ? route('manufacturer.profile') : (auth()->user()->role === 'admin' ? route('admin.profile') : route('shop.profile')) }}" class="w-10 h-10 flex items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 transition-all relative" title="profile">
             @if(auth()->user()->profile_image)
                 <img src="{{ asset('storage/' . auth()->user()->profile_image) }}" alt="Profile" class="w-8 h-8 rounded-full object-cover border border-neutral-200">
             @else

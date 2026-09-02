@@ -5,12 +5,6 @@
 @section('page_title', 'Payments')
 @section('page_subtitle', 'Manage your outgoing payments')
 
-@section('header_actions')
-    <button onclick="toggleModal(true)" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition shadow-sm">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5V19M5 12H19" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Record Payment
-    </button>
-@endsection
 
 
     </div>

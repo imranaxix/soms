@@ -136,6 +136,56 @@ class AdminController extends Controller
         return back()->with('success', $message);
     }
 
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('admin.profile', compact('user'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('success', 'Profile updated successfully.');
+    }
+
+    public function uploadProfileImage(Request $request)
+    {
+        $request->validate([
+            'profile_image' => 'required|image|max:2048',
+        ]);
+
+        $user = auth()->user();
+
+        if ($user->profile_image) {
+            \Storage::disk('public')->delete($user->profile_image);
+        }
+
+        $user->update([
+            'profile_image' => $request->file('profile_image')->store('profile-images', 'public'),
+        ]);
+
+        return back()->with('success', 'Profile picture updated.');
+    }
+
+    public function deleteProfileImage()
+    {
+        $user = auth()->user();
+
+        if ($user->profile_image) {
+            \Storage::disk('public')->delete($user->profile_image);
+            $user->update(['profile_image' => null]);
+        }
+
+        return back()->with('success', 'Profile picture removed.');
+    }
+
     /**
      * Platform-wide reports.
      */

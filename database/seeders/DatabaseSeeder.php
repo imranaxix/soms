@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
         // ── Admin ───────────────────────────────────────────────
         $this->call(AdminSeeder::class);
 
+        // ── Demo Admin/Manufacturer ─────────────────────────────
+        $this->call(ManufacturerSeeder::class);
+
         
     }
 }
