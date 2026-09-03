@@ -60,7 +60,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <label for="password" class="block text-sm font-semibold text-neutral-700">Password</label>
-                        <a href="#" class="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors">Forgot password?</a>
+                        <!-- <a href="#" class="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors">Forgot password?</a> -->
                     </div>
                     <input type="password" id="password" name="password"  
                         placeholder="••••••••"
